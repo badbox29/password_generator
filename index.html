@@ -33,8 +33,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 /* LAYOUT */
 .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 60px;}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-@media(max-width:760px){.grid{grid-template-columns:1fr;}}
 
 /* CARDS */
 .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:0;}
@@ -128,101 +126,102 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 </div>
 
 <div class="wrap">
-  <div class="grid">
 
-    <!-- PASSWORD SECTION -->
-    <div>
-      <div class="card" style="margin-bottom:12px;">
-        <div class="card-hd">
-          <div class="card-icon ci-blue">🔒</div>
-          <div class="card-title">Generate Password</div>
-        </div>
+  <!-- PASSWORD SECTION -->
+  <div style="margin-bottom:16px;">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-hd">
+        <div class="card-icon ci-blue">🔒</div>
+        <div class="card-title">Generate Password</div>
+      </div>
 
-        <div class="field">
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:140px;">
           <label>Length <span class="val" id="pw-len-val">26</span></label>
           <input type="range" id="pw-length" min="4" max="128" value="26" oninput="document.getElementById('pw-len-val').textContent=this.value">
         </div>
-        <div class="field">
+        <div class="field" style="flex:1;min-width:140px;">
           <label>Quantity <span class="val" id="pw-qty-val">15</span></label>
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
-
-        <div class="checks-block">
-          <label class="check-row"><input type="checkbox" id="pw-upper" checked> Uppercase letters (A–Z)</label>
-          <label class="check-row"><input type="checkbox" id="pw-lower" checked> Lowercase letters (a–z)</label>
-          <label class="check-row"><input type="checkbox" id="pw-nums" checked> Numbers (0–9)</label>
-          <label class="check-row"><input type="checkbox" id="pw-special" checked> Special characters</label>
-          <label class="check-row"><input type="checkbox" id="pw-noambig"> Exclude ambiguous chars (0, O, l, 1)</label>
-        </div>
-
-        <button class="btn-primary" onclick="generatePassword()">⚡ Generate Passwords</button>
-      </div>
-
-      <div class="output-wrap" id="pw-output-wrap">
-        <div class="output-header">
-          <span class="output-label">Passwords</span>
-          <div class="output-actions">
-            <span class="output-count" id="pw-count"></span>
-            <button class="btn-ghost" id="pw-copy-all" onclick="copyAll('pw')" style="display:none;">Copy all</button>
+        <div style="flex:2;min-width:240px;">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="pw-upper" checked> Uppercase letters (A–Z)</label>
+            <label class="check-row"><input type="checkbox" id="pw-lower" checked> Lowercase letters (a–z)</label>
+            <label class="check-row"><input type="checkbox" id="pw-nums" checked> Numbers (0–9)</label>
+            <label class="check-row"><input type="checkbox" id="pw-special" checked> Special characters</label>
+            <label class="check-row"><input type="checkbox" id="pw-noambig"> Exclude ambiguous chars (0, O, l, 1)</label>
           </div>
         </div>
-        <div class="output-body" id="pw-output">
-          <div class="output-empty"><span>🔒</span>Click generate to create passwords</div>
-        </div>
-
       </div>
+
+      <button class="btn-primary" onclick="generatePassword()" style="width:auto;padding:11px 28px;">⚡ Generate Passwords</button>
     </div>
 
-    <!-- PASSPHRASE SECTION -->
-    <div>
-      <div class="card" style="margin-bottom:12px;">
-        <div class="card-hd">
-          <div class="card-icon ci-purple">📝</div>
-          <div class="card-title">Generate Passphrase</div>
+    <div class="output-wrap">
+      <div class="output-header">
+        <span class="output-label">Passwords</span>
+        <div class="output-actions">
+          <span class="output-count" id="pw-count"></span>
+          <button class="btn-ghost" id="pw-copy-all" onclick="copyAll('pw')" style="display:none;">Copy all</button>
         </div>
+      </div>
+      <div class="output-body" id="pw-output">
+        <div class="output-empty"><span>🔒</span>Click generate to create passwords</div>
+      </div>
+    </div>
+  </div>
 
-        <div class="field">
+  <!-- PASSPHRASE SECTION -->
+  <div style="margin-bottom:16px;">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-hd">
+        <div class="card-icon ci-purple">📝</div>
+        <div class="card-title">Generate Passphrase</div>
+      </div>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:140px;">
           <label>Words per phrase <span class="val" id="pp-words-val">4</span></label>
           <input type="range" id="pp-words" min="2" max="9" value="4" oninput="document.getElementById('pp-words-val').textContent=this.value">
         </div>
-        <div class="field">
+        <div class="field" style="flex:1;min-width:140px;">
           <label>Quantity <span class="val" id="pp-qty-val">15</span></label>
           <input type="range" id="pp-qty" min="1" max="45" value="15" oninput="document.getElementById('pp-qty-val').textContent=this.value">
         </div>
-
-        <div class="checks-block">
-          <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
-          <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
-          <label class="check-row" style="gap:12px;">
-            <span style="flex-shrink:0;">Word separator</span>
-            <input type="text" id="pp-sep" value="-" maxlength="5"
-              style="width:60px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;outline:none;text-align:center;"
-              placeholder="none">
-          </label>
-        </div>
-
-        <button class="btn-primary purple" onclick="generatePassphrase()">⚡ Generate Passphrases</button>
-      </div>
-
-      <div class="output-wrap" id="pp-output-wrap">
-        <div class="output-header">
-          <span class="output-label">Passphrases</span>
-          <div class="output-actions">
-            <span class="output-count" id="pp-count"></span>
-            <button class="btn-ghost" id="pp-copy-all" onclick="copyAll('pp')" style="display:none;">Copy all</button>
+        <div style="flex:2;min-width:240px;">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
+            <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
+            <label class="check-row" style="gap:12px;">
+              <span style="flex-shrink:0;">Word separator</span>
+              <input type="text" id="pp-sep" value="-" maxlength="5"
+                style="width:60px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;outline:none;text-align:center;"
+                placeholder="none">
+            </label>
           </div>
         </div>
-        <div class="output-body" id="pp-output">
-          <div class="output-empty"><span>📝</span>Click generate to create passphrases</div>
-        </div>
-
       </div>
+
+      <button class="btn-primary purple" onclick="generatePassphrase()" style="width:auto;padding:11px 28px;">⚡ Generate Passphrases</button>
     </div>
 
-  </div><!-- end grid -->
+    <div class="output-wrap">
+      <div class="output-header">
+        <span class="output-label">Passphrases</span>
+        <div class="output-actions">
+          <span class="output-count" id="pp-count"></span>
+          <button class="btn-ghost" id="pp-copy-all" onclick="copyAll('pp')" style="display:none;">Copy all</button>
+        </div>
+      </div>
+      <div class="output-body" id="pp-output">
+        <div class="output-empty"><span>📝</span>Click generate to create passphrases</div>
+      </div>
+    </div>
+  </div>
 
-  <!-- PIN SECTION — full width below -->
-  <div style="margin-top:16px;">
+  <!-- PIN SECTION -->
+  <div style="margin-bottom:16px;">
     <div class="card" style="margin-bottom:12px;">
       <div class="card-hd">
         <div class="card-icon ci-green">🔢</div>
@@ -238,7 +237,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="pin-qty-val">15</span></label>
           <input type="range" id="pin-qty" min="1" max="45" value="15" oninput="document.getElementById('pin-qty-val').textContent=this.value">
         </div>
-        <div style="flex:1;min-width:140px;">
+        <div style="flex:2;min-width:240px;">
           <div class="checks-block">
             <label class="check-row"><input type="checkbox" id="pin-spaces"> Group digits with spaces</label>
           </div>
