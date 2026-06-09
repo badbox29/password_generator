@@ -69,7 +69,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .output-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);}
 .output-actions{display:flex;gap:6px;align-items:center;}
 .output-count{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
-.output-body{padding:8px;overflow-y:auto;max-height:340px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;}
+.output-body{padding:8px;overflow-y:auto;overflow-x:visible;max-height:340px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;}
 .output-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--text-muted);font-size:13px;gap:8px;min-height:120px;}
 .output-empty span{font-size:28px;}
 
@@ -83,24 +83,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .copy-btn:hover{opacity:1;background:var(--bg-card2);}
 
 /* ENTROPY TOOLTIP */
-.item{position:relative;}
 .entropy-tip{
   display:none;
-  position:absolute;
-  bottom:calc(100% + 6px);
-  left:50%;
-  transform:translateX(-50%);
+  position:fixed;
   background:var(--bg-input);
   border:1px solid var(--border-light);
   border-radius:8px;
   padding:8px 12px;
   white-space:nowrap;
-  z-index:200;
+  z-index:9999;
   pointer-events:none;
-  box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  box-shadow:0 4px 16px rgba(0,0,0,0.4);
   min-width:160px;
+  transform:translateX(-50%);
 }
-.item:hover .entropy-tip{display:block;}
+.entropy-tip.visible{display:block;}
 .tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
 .tip-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
 .tip-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
@@ -314,14 +311,36 @@ function buildTooltip(bits) {
   const color = entropyColor(bits);
   const label = entropyLabel(bits);
   const pct = Math.min(100, (bits / 128) * 100);
-  const tip = document.createElement('div');
-  tip.className = 'entropy-tip';
-  tip.innerHTML = `
-    <div class="tip-bits" style="color:${color}">${bits} bits</div>
-    <div class="tip-label">${label} · hover to inspect</div>
-    <div class="tip-bar-wrap"><div class="tip-bar" style="width:${pct}%;background:${color}"></div></div>
-    <div class="tip-arrow"></div>`;
-  return tip;
+  return { color, label, pct, bits };
+}
+
+// Single shared tooltip element
+const _tip = document.createElement('div');
+_tip.className = 'entropy-tip';
+_tip.innerHTML = `<div class="tip-bits"></div><div class="tip-label"></div><div class="tip-bar-wrap"><div class="tip-bar"></div></div><div class="tip-arrow"></div>`;
+document.body.appendChild(_tip);
+
+function showTip(el, bits) {
+  const color = entropyColor(bits);
+  const label = entropyLabel(bits);
+  const pct = Math.min(100, (bits / 128) * 100);
+  _tip.querySelector('.tip-bits').textContent = bits + ' bits';
+  _tip.querySelector('.tip-bits').style.color = color;
+  _tip.querySelector('.tip-label').textContent = label;
+  _tip.querySelector('.tip-bar').style.width = pct + '%';
+  _tip.querySelector('.tip-bar').style.background = color;
+
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const top = rect.top - 8; // will be placed above via transform
+  _tip.style.left = cx + 'px';
+  _tip.style.top = top + 'px';
+  _tip.style.transform = 'translateX(-50%) translateY(-100%)';
+  _tip.classList.add('visible');
+}
+
+function hideTip() {
+  _tip.classList.remove('visible');
 }
 
 // ── RENDER ITEMS ─────────────────────────────────────────────────────────────
@@ -353,11 +372,11 @@ function renderItems(outputId, items, colorClass, entropyFn) {
     });
 
     const bits = entropyFn(text);
-    const tip = buildTooltip(bits);
+    row.addEventListener('mouseenter', () => showTip(row, bits));
+    row.addEventListener('mouseleave', hideTip);
 
     row.appendChild(span);
     row.appendChild(btn);
-    row.appendChild(tip);
     el.appendChild(row);
   });
 }
