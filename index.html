@@ -42,6 +42,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
 .ci-blue{background:var(--blue-dim);color:var(--blue);}
 .ci-purple{background:var(--purple-dim);color:var(--purple);}
+.ci-green{background:var(--green-dim);color:var(--green);}
 .card-title{font-size:15px;font-weight:600;}
 
 /* FORM CONTROLS */
@@ -192,7 +193,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
           <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
-          <label class="check-row"><input type="checkbox" id="pp-sep" checked> Separator between words (–)</label>
+          <label class="check-row" style="gap:12px;">
+            <span style="flex-shrink:0;">Word separator</span>
+            <input type="text" id="pp-sep" value="-" maxlength="5"
+              style="width:60px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;outline:none;text-align:center;"
+              placeholder="none">
+          </label>
         </div>
 
         <button class="btn-primary purple" onclick="generatePassphrase()">⚡ Generate Passphrases</button>
@@ -213,7 +219,49 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       </div>
     </div>
 
+  </div><!-- end grid -->
+
+  <!-- PIN SECTION — full width below -->
+  <div style="margin-top:16px;">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-hd">
+        <div class="card-icon ci-green">🔢</div>
+        <div class="card-title">Generate PIN</div>
+      </div>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+        <div class="field" style="flex:1;min-width:140px;">
+          <label>Digits <span class="val" id="pin-len-val">6</span></label>
+          <input type="range" id="pin-length" min="4" max="12" value="6" oninput="document.getElementById('pin-len-val').textContent=this.value">
+        </div>
+        <div class="field" style="flex:1;min-width:140px;">
+          <label>Quantity <span class="val" id="pin-qty-val">15</span></label>
+          <input type="range" id="pin-qty" min="1" max="45" value="15" oninput="document.getElementById('pin-qty-val').textContent=this.value">
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="pin-spaces"> Group digits with spaces</label>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="pin-btn" onclick="generatePIN()" style="background:var(--green);width:auto;padding:11px 28px;">⚡ Generate PINs</button>
+    </div>
+
+    <div class="output-wrap">
+      <div class="output-header">
+        <span class="output-label">PINs</span>
+        <div class="output-actions">
+          <span class="output-count" id="pin-count"></span>
+          <button class="btn-ghost" id="pin-copy-all" onclick="copyAll('pin')" style="display:none;">Copy all</button>
+        </div>
+      </div>
+      <div class="output-body" id="pin-output" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">
+        <div class="output-empty"><span>🔢</span>Click generate to create PINs</div>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -247,12 +295,13 @@ function showToast(msg) {
 }
 
 // ── COPY ALL ─────────────────────────────────────────────────────────────────
-window._lastPW = [];
-window._lastPP = [];
+window._lastPW  = [];
+window._lastPP  = [];
+window._lastPIN = [];
 
 function copyAll(type) {
-  const items = type === 'pw' ? window._lastPW : window._lastPP;
-  navigator.clipboard.writeText(items.join('\n')).then(() => showToast('✓ Copied all to clipboard'));
+  const map = { pw: window._lastPW, pp: window._lastPP, pin: window._lastPIN };
+  navigator.clipboard.writeText(map[type].join('\n')).then(() => showToast('✓ Copied all to clipboard'));
 }
 
 // ── ENTROPY ──────────────────────────────────────────────────────────────────
@@ -419,7 +468,7 @@ function generatePassphrase() {
   const qty      = parseInt(document.getElementById('pp-qty').value);
   const caps     = document.getElementById('pp-caps').checked;
   const extras   = document.getElementById('pp-extras').checked;
-  const sep      = document.getElementById('pp-sep').checked;
+  const sep      = document.getElementById('pp-sep').value;
 
   const SPECIAL = '!@#$%^&*';
   const NUMS    = '0123456789';
@@ -442,13 +491,106 @@ function generatePassphrase() {
         words[idx] = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
       }
     }
-    phrases.push(words.join(sep ? '-' : ' '));
+    phrases.push(words.join(sep));
   }
   window._lastPP = phrases;
   renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, WORD_LIST.length));
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
+
+// ── PIN GENERATOR ─────────────────────────────────────────────────────────────
+function generatePIN() {
+  const length = parseInt(document.getElementById('pin-length').value);
+  const qty    = parseInt(document.getElementById('pin-qty').value);
+  const spaces = document.getElementById('pin-spaces').checked;
+
+  const pins = [];
+  for (let i = 0; i < qty; i++) {
+    let digits = '';
+    for (let j = 0; j < length; j++) digits += randInt(10).toString();
+    if (spaces) {
+      // group into chunks of 3 (e.g. 123 456 789)
+      digits = digits.match(/.{1,3}/g).join(' ');
+    }
+    pins.push(digits);
+  }
+  window._lastPIN = pins;
+  // PIN entropy: length × log2(10)
+  renderItems('pin-output', pins, 'blue', (p) => Math.round(p.replace(/\s/g,'').length * Math.log2(10)));
+  document.getElementById('pin-count').textContent = qty + ' generated';
+  document.getElementById('pin-copy-all').style.display = '';
+  saveSettings();
 }
+
+// ── LOCALSTORAGE PERSISTENCE ──────────────────────────────────────────────────
+const LS_KEY = 'pwgen_settings_v1';
+
+function collectSettings() {
+  return {
+    pwLength:   document.getElementById('pw-length').value,
+    pwQty:      document.getElementById('pw-qty').value,
+    pwUpper:    document.getElementById('pw-upper').checked,
+    pwLower:    document.getElementById('pw-lower').checked,
+    pwNums:     document.getElementById('pw-nums').checked,
+    pwSpecial:  document.getElementById('pw-special').checked,
+    pwNoambig:  document.getElementById('pw-noambig').checked,
+    ppWords:    document.getElementById('pp-words').value,
+    ppQty:      document.getElementById('pp-qty').value,
+    ppCaps:     document.getElementById('pp-caps').checked,
+    ppExtras:   document.getElementById('pp-extras').checked,
+    ppSep:      document.getElementById('pp-sep').value,
+    pinLength:  document.getElementById('pin-length').value,
+    pinQty:     document.getElementById('pin-qty').value,
+    pinSpaces:  document.getElementById('pin-spaces').checked,
+    darkMode:   !document.body.classList.contains('light'),
+  };
+}
+
+function applySettings(s) {
+  if (!s) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+  const lbl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  set('pw-length', s.pwLength);   lbl('pw-len-val', s.pwLength);
+  set('pw-qty',    s.pwQty);      lbl('pw-qty-val', s.pwQty);
+  chk('pw-upper',   s.pwUpper);
+  chk('pw-lower',   s.pwLower);
+  chk('pw-nums',    s.pwNums);
+  chk('pw-special', s.pwSpecial);
+  chk('pw-noambig', s.pwNoambig);
+
+  set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
+  set('pp-qty',   s.ppQty);       lbl('pp-qty-val', s.ppQty);
+  chk('pp-caps',   s.ppCaps);
+  chk('pp-extras', s.ppExtras);
+  set('pp-sep',    s.ppSep !== undefined ? s.ppSep : '-');
+
+  set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
+  set('pin-qty',    s.pinQty);    lbl('pin-qty-val', s.pinQty);
+  chk('pin-spaces', s.pinSpaces);
+
+  if (s.darkMode === false) {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙 Dark';
+  }
+}
+
+function saveSettings() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(collectSettings())); } catch(e) {}
+}
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) { return null; }
+}
+
+// Wire up all inputs to auto-save on change
+document.addEventListener('DOMContentLoaded', () => {
+  applySettings(loadSettings());
+  document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text]')
+    .forEach(el => el.addEventListener('change', saveSettings));
+  // sliders fire 'input' for live label update but save on 'change' (mouseup) to avoid thrashing
+});
 </script>
 </body>
 </html>
