@@ -497,6 +497,7 @@ function generatePassphrase() {
   renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, WORD_LIST.length));
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
+}
 
 // ── PIN GENERATOR ─────────────────────────────────────────────────────────────
 function generatePIN() {
