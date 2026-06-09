@@ -77,8 +77,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .output-actions{display:flex;gap:6px;align-items:center;}
 .output-count{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
 .output-body{padding:8px;overflow-y:auto;overflow-x:visible;flex:1;min-height:200px;max-height:320px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;}
-.output-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--text-muted);font-size:13px;gap:8px;min-height:120px;}
-.output-empty span{font-size:28px;}
+.output-empty{display:flex;align-items:center;justify-content:center;min-height:160px;padding:20px;}
+.watermark{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;opacity:0.07;user-select:none;pointer-events:none;}
 
 /* ITEMS */
 .item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;border-radius:6px;transition:background .1s;}
@@ -168,7 +168,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
       </div>
       <div class="output-body" id="pw-output">
-        <div class="output-empty"><span>🔒</span>Click generate to create passwords</div>
+        <div class="output-empty"><span class="watermark" style="color:var(--blue);font-size:28px;">passwords</span></div>
       </div>
     </div>
   </div>
@@ -209,7 +209,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
       </div>
       <div class="output-body" id="pp-output">
-        <div class="output-empty"><span>📝</span>Click generate to create passphrases</div>
+        <div class="output-empty"><span class="watermark" style="color:var(--purple);font-size:28px;">passphrases</span></div>
       </div>
     </div>
   </div>
@@ -243,7 +243,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
       </div>
       <div class="output-body" id="pin-output" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">
-        <div class="output-empty"><span>🔢</span>Click generate to create PINs</div>
+        <div class="output-empty"><span class="watermark" style="color:var(--green);font-size:28px;">pins</span></div>
       </div>
     </div>
   </div>
@@ -383,7 +383,7 @@ function renderItems(outputId, items, colorClass, entropyFn) {
   const el = document.getElementById(outputId);
   el.innerHTML = '';
   if (!items || items.length === 0) {
-    el.innerHTML = '<div class="output-empty"><span>🔍</span>No results</div>';
+    el.innerHTML = '<div class="output-empty"><span class="watermark" style="font-size:18px;opacity:0.15;color:var(--text-muted);">no results</span></div>';
     return;
   }
   items.forEach((text) => {
