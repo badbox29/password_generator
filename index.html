@@ -82,12 +82,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .copy-btn{cursor:pointer;opacity:0.45;transition:opacity .2s;flex-shrink:0;font-size:13px;padding:2px 4px;border-radius:4px;}
 .copy-btn:hover{opacity:1;background:var(--bg-card2);}
 
-/* ENTROPY BADGE */
-.entropy-row{display:flex;align-items:center;gap:6px;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-card2);}
-.entropy-label{font-size:11px;color:var(--text-muted);}
-.entropy-val{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;}
-.entropy-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.entropy-bar{height:100%;border-radius:2px;transition:width .3s,background .3s;}
+/* ENTROPY TOOLTIP */
+.item{position:relative;}
+.entropy-tip{
+  display:none;
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--bg-input);
+  border:1px solid var(--border-light);
+  border-radius:8px;
+  padding:8px 12px;
+  white-space:nowrap;
+  z-index:200;
+  pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  min-width:160px;
+}
+.item:hover .entropy-tip{display:block;}
+.tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
+.tip-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
+.tip-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.tip-bar{height:100%;border-radius:2px;}
+.tip-arrow{
+  position:absolute;
+  top:100%;left:50%;
+  transform:translateX(-50%);
+  width:0;height:0;
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:5px solid var(--border-light);
+}
 
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;color:var(--text-primary);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap;}
@@ -145,11 +171,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="output-body" id="pw-output">
           <div class="output-empty"><span>🔒</span>Click generate to create passwords</div>
         </div>
-        <div class="entropy-row" id="pw-entropy-row" style="display:none;">
-          <span class="entropy-label">Entropy</span>
-          <div class="entropy-bar-wrap"><div class="entropy-bar" id="pw-entropy-bar"></div></div>
-          <span class="entropy-val" id="pw-entropy-val"></span>
-        </div>
+
       </div>
     </div>
 
@@ -190,11 +212,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="output-body" id="pp-output">
           <div class="output-empty"><span>📝</span>Click generate to create passphrases</div>
         </div>
-        <div class="entropy-row" id="pp-entropy-row" style="display:none;">
-          <span class="entropy-label">Entropy</span>
-          <div class="entropy-bar-wrap"><div class="entropy-bar" id="pp-entropy-bar"></div></div>
-          <span class="entropy-val" id="pp-entropy-val"></span>
-        </div>
+
       </div>
     </div>
 
@@ -241,47 +259,105 @@ function copyAll(type) {
 }
 
 // ── ENTROPY ──────────────────────────────────────────────────────────────────
-function calcEntropyPW(length, poolSize) {
-  return Math.floor(length * Math.log2(poolSize));
+// For passwords: analyse the actual character set present in the string,
+// then compute length × log2(pool). This gives per-item entropy based on
+// what characters actually appear (approximating the pool used).
+function calcEntropyForPassword(pw) {
+  let pool = 0;
+  if (/[a-z]/.test(pw)) pool += 26;
+  if (/[A-Z]/.test(pw)) pool += 26;
+  if (/[0-9]/.test(pw)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(pw)) pool += 32; // special chars
+  if (pool === 0) return 0;
+  return Math.round(pw.length * Math.log2(pool));
 }
-function calcEntropyPP(numWords, listSize) {
-  return Math.floor(numWords * Math.log2(listSize));
+
+// For passphrases: count the words, measure average word length, account for
+// caps variation per character and any injected extras (non-alpha chars).
+function calcEntropyForPassphrase(phrase, listSize) {
+  // Split on separator or spaces to get words
+  const words = phrase.split(/[-\s]+/).filter(Boolean);
+  const numWords = words.length;
+
+  // Base word-selection entropy
+  let bits = numWords * Math.log2(listSize);
+
+  // Extra entropy from per-character capitalisation (each alpha char is a coin flip)
+  const alphaChars = (phrase.match(/[a-zA-Z]/g) || []).length;
+  bits += alphaChars * Math.log2(2);
+
+  // Extra entropy from injected non-alpha, non-separator characters
+  const extras = (phrase.match(/[^a-zA-Z\s\-]/g) || []).length;
+  if (extras > 0) {
+    // Each injected char: choice of position (avg word len) + char from pool of 18
+    const avgWordLen = alphaChars / Math.max(numWords, 1);
+    bits += extras * (Math.log2(Math.max(avgWordLen, 1)) + Math.log2(18));
+  }
+
+  return Math.round(bits);
 }
-function renderEntropy(barId, valId, rowId, bits) {
-  document.getElementById(rowId).style.display = 'flex';
+
+function entropyColor(bits) {
+  if (bits < 50) return '#ef4444';
+  if (bits < 80) return '#f59e0b';
+  return '#22c55e';
+}
+
+function entropyLabel(bits) {
+  if (bits < 50) return 'Weak';
+  if (bits < 80) return 'Moderate';
+  if (bits < 100) return 'Strong';
+  return 'Very strong';
+}
+
+function buildTooltip(bits) {
+  const color = entropyColor(bits);
+  const label = entropyLabel(bits);
   const pct = Math.min(100, (bits / 128) * 100);
-  const bar = document.getElementById(barId);
-  bar.style.width = pct + '%';
-  bar.style.background = bits < 50 ? '#ef4444' : bits < 80 ? '#f59e0b' : '#22c55e';
-  document.getElementById(valId).textContent = bits + ' bits';
+  const tip = document.createElement('div');
+  tip.className = 'entropy-tip';
+  tip.innerHTML = `
+    <div class="tip-bits" style="color:${color}">${bits} bits</div>
+    <div class="tip-label">${label} · hover to inspect</div>
+    <div class="tip-bar-wrap"><div class="tip-bar" style="width:${pct}%;background:${color}"></div></div>
+    <div class="tip-arrow"></div>`;
+  return tip;
 }
 
 // ── RENDER ITEMS ─────────────────────────────────────────────────────────────
-function renderItems(outputId, items, colorClass) {
+function renderItems(outputId, items, colorClass, entropyFn) {
   const el = document.getElementById(outputId);
   el.innerHTML = '';
   if (!items || items.length === 0) {
     el.innerHTML = '<div class="output-empty"><span>🔍</span>No results</div>';
     return;
   }
-  items.forEach((text, i) => {
+  items.forEach((text) => {
     const row = document.createElement('div');
     row.className = 'item';
+
     const span = document.createElement('span');
     span.className = 'item-text ' + colorClass;
     span.textContent = text;
+
     const btn = document.createElement('span');
     btn.className = 'copy-btn';
     btn.textContent = '📋';
     btn.title = 'Copy';
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       navigator.clipboard.writeText(text).then(() => {
         btn.textContent = '✔';
         setTimeout(() => btn.textContent = '📋', 1000);
       });
     });
+
+    const bits = entropyFn(text);
+    const tip = buildTooltip(bits);
+
     row.appendChild(span);
     row.appendChild(btn);
+    row.appendChild(tip);
     el.appendChild(row);
   });
 }
@@ -313,10 +389,9 @@ function generatePassword() {
     passwords.push(p);
   }
   window._lastPW = passwords;
-  renderItems('pw-output', passwords, 'blue');
+  renderItems('pw-output', passwords, 'blue', calcEntropyForPassword);
   document.getElementById('pw-count').textContent = qty + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
-  renderEntropy('pw-entropy-bar', 'pw-entropy-val', 'pw-entropy-row', calcEntropyPW(length, pool.length));
 }
 
 // ── GENERATE PASSPHRASE ───────────────────────────────────────────────────────
@@ -351,10 +426,9 @@ function generatePassphrase() {
     phrases.push(words.join(sep ? '-' : ' '));
   }
   window._lastPP = phrases;
-  renderItems('pp-output', phrases, 'purple');
+  renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, WORD_LIST.length));
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
-  renderEntropy('pp-entropy-bar', 'pp-entropy-val', 'pp-entropy-row', calcEntropyPP(numWords, list.length));
 }
 </script>
 </body>
