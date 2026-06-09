@@ -155,6 +155,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .wl-item-badge.builtin{background:var(--bg-card);color:var(--text-muted);border-color:var(--border);}
 .wl-remove{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px 4px;border-radius:3px;transition:color .15s;flex-shrink:0;}
 .wl-remove:hover{color:#ef4444;}
+.wl-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:1px 2px;outline:none;transition:border-color .15s;min-width:0;}
+.wl-name-input:hover{border-bottom-color:var(--border-light);}
+.wl-name-input:focus{border-bottom-color:var(--blue);}
 .wl-add-row{display:flex;gap:8px;align-items:center;}
 
 /* WORD LIST SELECTOR (inline in passphrase card) */
@@ -676,7 +679,7 @@ function renderWordListUI() {
   const container = document.getElementById('wl-list');
   container.innerHTML = '';
 
-  // Built-in entry (not removable)
+  // Built-in entry (not removable, not renameable)
   const builtin = document.createElement('div');
   builtin.className = 'wl-item';
   builtin.innerHTML = `
@@ -685,15 +688,51 @@ function renderWordListUI() {
     <span class="wl-item-badge builtin">default</span>`;
   container.appendChild(builtin);
 
-  // Custom lists
+  // Custom lists — name is an inline editable input
   window._customLists.forEach((lst, i) => {
     const row = document.createElement('div');
     row.className = 'wl-item';
-    row.innerHTML = `
-      <span class="wl-item-name">${escHtml(lst.name)}</span>
-      <span class="wl-item-count">${lst.words.length.toLocaleString()} words</span>
-      <span class="wl-item-badge">custom</span>
-      <button class="wl-remove" title="Remove" onclick="removeWordList(${i})">✕</button>`;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'wl-name-input';
+    nameInput.value = lst.name;
+    nameInput.title = 'Click to rename';
+    nameInput.setAttribute('aria-label', 'List name');
+    const commitRename = () => {
+      const newName = nameInput.value.trim();
+      if (newName && newName !== window._customLists[i].name) {
+        window._customLists[i].name = newName;
+        rebuildWordListSelector();
+        saveSettings();
+      } else if (!newName) {
+        nameInput.value = window._customLists[i].name; // revert if blank
+      }
+    };
+    nameInput.addEventListener('blur', commitRename);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
+      if (e.key === 'Escape') { nameInput.value = window._customLists[i].name; nameInput.blur(); }
+    });
+
+    const count = document.createElement('span');
+    count.className = 'wl-item-count';
+    count.textContent = `${lst.words.length.toLocaleString()} words`;
+
+    const badge = document.createElement('span');
+    badge.className = 'wl-item-badge';
+    badge.textContent = 'custom';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'wl-remove';
+    removeBtn.title = 'Remove';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => removeWordList(i));
+
+    row.appendChild(nameInput);
+    row.appendChild(count);
+    row.appendChild(badge);
+    row.appendChild(removeBtn);
     container.appendChild(row);
   });
 }
