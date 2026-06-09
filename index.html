@@ -305,11 +305,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="checks-block">
         <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
         <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
-        <label class="check-row" style="gap:12px;">
+        <label class="check-row" style="gap:10px;flex-wrap:wrap;">
           <span style="flex-shrink:0;">Word separator</span>
           <input type="text" id="pp-sep" value="-" maxlength="5"
-            style="width:60px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;outline:none;text-align:center;"
+            style="width:52px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:3px 8px;outline:none;text-align:center;transition:opacity .15s;"
             placeholder="none">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-left:auto;">
+            <input type="checkbox" id="pp-sep-random" style="accent-color:var(--purple);width:13px;height:13px;cursor:pointer;" onchange="toggleRandomSep(this.checked)">
+            random
+          </label>
         </label>
       </div>
       <div class="field" style="margin-top:14px;">
@@ -575,24 +579,19 @@ function generatePassword() {
 }
 
 // ── GENERATE PASSPHRASE ───────────────────────────────────────────────────────
-function getActiveWordList() {
-  const sel = document.getElementById('pp-wordlist');
-  const val = sel ? sel.value : 'builtin';
-  if (val === 'builtin') return WORD_LIST;
-  if (val === 'all') {
-    // merge + case-insensitive dedup
-    const seen = new Set();
-    const merged = [];
-    for (const w of WORD_LIST) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
-    for (const lst of window._customLists) {
-      for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
-    }
-    return merged;
-  }
-  // custom list by index
-  const idx = parseInt(val);
-  if (!isNaN(idx) && window._customLists[idx]) return window._customLists[idx].words;
-  return WORD_LIST;
+const RANDOM_SEPS = ['-', '_', '.', '~', '/', '+', ':', '=', '@', '!', '#', '*'];
+
+function toggleRandomSep(isRandom) {
+  const input = document.getElementById('pp-sep');
+  input.disabled = isRandom;
+  input.style.opacity = isRandom ? '0.35' : '1';
+  saveSettings();
+}
+
+function getActiveSep() {
+  const isRandom = document.getElementById('pp-sep-random').checked;
+  if (isRandom) return RANDOM_SEPS[randInt(RANDOM_SEPS.length)];
+  return document.getElementById('pp-sep').value;
 }
 
 function generatePassphrase() {
@@ -600,7 +599,6 @@ function generatePassphrase() {
   const qty      = parseInt(document.getElementById('pp-qty').value);
   const caps     = document.getElementById('pp-caps').checked;
   const extras   = document.getElementById('pp-extras').checked;
-  const sep      = document.getElementById('pp-sep').value;
   const list     = getActiveWordList();
 
   const SPECIAL = '!@#$%^&*';
@@ -623,12 +621,32 @@ function generatePassphrase() {
         words[idx] = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
       }
     }
-    phrases.push(words.join(sep));
+    phrases.push(words.join(getActiveSep()));
   }
   window._lastPP = phrases;
   renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, list.length));
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
+}
+
+function getActiveWordList() {
+  const sel = document.getElementById('pp-wordlist');
+  const val = sel ? sel.value : 'builtin';
+  if (val === 'builtin') return WORD_LIST;
+  if (val === 'all') {
+    // merge + case-insensitive dedup
+    const seen = new Set();
+    const merged = [];
+    for (const w of WORD_LIST) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    for (const lst of window._customLists) {
+      for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    }
+    return merged;
+  }
+  // custom list by index
+  const idx = parseInt(val);
+  if (!isNaN(idx) && window._customLists[idx]) return window._customLists[idx].words;
+  return WORD_LIST;
 }
 
 // ── PIN GENERATOR ─────────────────────────────────────────────────────────────
@@ -825,6 +843,7 @@ function collectSettings() {
     ppCaps:     document.getElementById('pp-caps').checked,
     ppExtras:   document.getElementById('pp-extras').checked,
     ppSep:      document.getElementById('pp-sep').value,
+    ppSepRandom: document.getElementById('pp-sep-random').checked,
     ppWordlist: document.getElementById('pp-wordlist') ? document.getElementById('pp-wordlist').value : 'builtin',
     pinLength:  document.getElementById('pin-length').value,
     pinQty:     document.getElementById('pin-qty').value,
@@ -854,6 +873,7 @@ function applySettings(s) {
   chk('pp-caps',   s.ppCaps);
   chk('pp-extras', s.ppExtras);
   set('pp-sep',    s.ppSep !== undefined ? s.ppSep : '-');
+  if (s.ppSepRandom) { chk('pp-sep-random', true); toggleRandomSep(true); }
 
   set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
   set('pin-qty',    s.pinQty);    lbl('pin-qty-val', s.pinQty);
