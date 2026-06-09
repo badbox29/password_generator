@@ -122,6 +122,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 /* TOAST */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;color:var(--text-primary);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:520px;max-width:calc(100vw - 32px);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;transition:color .15s;}
+.modal-close:hover{color:var(--text-primary);}
+.modal-body{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:24px;}
+.modal-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:12px;}
+.gen-toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.gen-toggle{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);user-select:none;transition:all .15s;background:var(--bg-card2);}
+.gen-toggle:hover{color:var(--text-primary);border-color:var(--border-light);}
+.gen-toggle.active{border-color:var(--blue);background:var(--blue-dim);color:var(--text-primary);}
+.gen-toggle.active.clr-purple{border-color:var(--purple);background:var(--purple-dim);}
+.gen-toggle.active.clr-green{border-color:var(--green);background:var(--green-dim);}
+.gen-toggle.active.clr-cyan{border-color:var(--cyan);background:var(--cyan-dim);}
+.gen-toggle input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;flex-shrink:0;}
+.gen-toggle-icon{font-size:15px;}
+.gen-toggle-info{display:flex;flex-direction:column;gap:1px;}
+.gen-toggle-label{font-size:13px;font-weight:500;}
+.gen-toggle-desc{font-size:11px;color:var(--text-muted);}
+
+/* WORD LIST MANAGER */
+.wl-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.wl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;font-size:13px;}
+.wl-item-name{flex:1;font-weight:500;}
+.wl-item-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);}
+.wl-item-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.wl-item-badge.builtin{background:var(--bg-card);color:var(--text-muted);border-color:var(--border);}
+.wl-remove{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px 4px;border-radius:3px;transition:color .15s;flex-shrink:0;}
+.wl-remove:hover{color:#ef4444;}
+.wl-add-row{display:flex;gap:8px;align-items:center;}
+
+/* WORD LIST SELECTOR (inline in passphrase card) */
+.wl-select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 8px;cursor:pointer;outline:none;transition:border-color .15s;}
+.wl-select:focus{border-color:var(--purple);}
+.light .wl-select option{background:#fff;}
 </style>
 </head>
 <body>
@@ -129,14 +168,94 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 <div class="topbar">
   <div class="topbar-title"><span>🔑</span> Password Generator</div>
   <div class="topbar-actions">
+    <button class="btn-ghost" onclick="openSettings()" id="settingsBtn">⚙ Settings</button>
     <button class="btn-ghost" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">⚙ Settings</span>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- SECTION 1: Active Generators -->
+      <div>
+        <div class="modal-section-title">Active Generators</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle active" id="tog-password">
+            <input type="checkbox" checked onchange="toggleGenerator('password',this.checked)">
+            <span class="gen-toggle-icon">🔒</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">Password</span>
+              <span class="gen-toggle-desc">Random character strings</span>
+            </div>
+          </label>
+          <label class="gen-toggle active clr-purple" id="tog-passphrase">
+            <input type="checkbox" checked onchange="toggleGenerator('passphrase',this.checked)">
+            <span class="gen-toggle-icon">📝</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">Passphrase</span>
+              <span class="gen-toggle-desc">Word-based phrases</span>
+            </div>
+          </label>
+          <label class="gen-toggle clr-green" id="tog-pin">
+            <input type="checkbox" onchange="toggleGenerator('pin',this.checked)">
+            <span class="gen-toggle-icon">🔢</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">PIN</span>
+              <span class="gen-toggle-desc">Numeric codes</span>
+            </div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-uuid">
+            <input type="checkbox" onchange="toggleGenerator('uuid',this.checked)">
+            <span class="gen-toggle-icon">🔵</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">UUID</span>
+              <span class="gen-toggle-desc">v4 identifiers</span>
+            </div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-apikey">
+            <input type="checkbox" onchange="toggleGenerator('apikey',this.checked)">
+            <span class="gen-toggle-icon">🔑</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">API Key</span>
+              <span class="gen-toggle-desc">Hex / base62 tokens</span>
+            </div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-username">
+            <input type="checkbox" onchange="toggleGenerator('username',this.checked)">
+            <span class="gen-toggle-icon">👤</span>
+            <div class="gen-toggle-info">
+              <span class="gen-toggle-label">Username</span>
+              <span class="gen-toggle-desc">word + number combos</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Word Lists -->
+      <div>
+        <div class="modal-section-title">Word Lists</div>
+        <div class="wl-list" id="wl-list"></div>
+        <div class="wl-add-row">
+          <button class="btn-ghost" onclick="document.getElementById('wl-file-input').click()">+ Add list from .txt file</button>
+          <input type="file" id="wl-file-input" accept=".txt" style="display:none" onchange="loadWordListFile(this)">
+          <span id="wl-load-status" style="font-size:12px;color:var(--text-muted);"></span>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
 <div class="wrap">
 
   <!-- PASSWORD SECTION -->
-  <div class="section-card">
+  <div class="section-card" id="section-password">
     <div class="section-left">
       <div class="card-hd">
         <div class="card-icon ci-blue">🔒</div>
@@ -174,7 +293,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
   </div>
 
   <!-- PASSPHRASE SECTION -->
-  <div class="section-card">
+  <div class="section-card" id="section-passphrase">
     <div class="section-left">
       <div class="card-hd">
         <div class="card-icon ci-purple">📝</div>
@@ -198,6 +317,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <label>Quantity <span class="val" id="pp-qty-val">15</span></label>
         <input type="range" id="pp-qty" min="1" max="45" value="15" oninput="document.getElementById('pp-qty-val').textContent=this.value">
       </div>
+      <div class="field">
+        <label style="margin-bottom:5px;">Word list</label>
+        <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
+      </div>
       <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;padding-top:11px;">⚡ Generate Passphrases</button>
     </div>
     <div class="section-right">
@@ -215,7 +338,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
   </div>
 
   <!-- PIN SECTION -->
-  <div class="section-card">
+  <div class="section-card" id="section-pin">
     <div class="section-left">
       <div class="card-hd">
         <div class="card-icon ci-green">🔢</div>
@@ -449,16 +572,36 @@ function generatePassword() {
 }
 
 // ── GENERATE PASSPHRASE ───────────────────────────────────────────────────────
+function getActiveWordList() {
+  const sel = document.getElementById('pp-wordlist');
+  const val = sel ? sel.value : 'builtin';
+  if (val === 'builtin') return WORD_LIST;
+  if (val === 'all') {
+    // merge + case-insensitive dedup
+    const seen = new Set();
+    const merged = [];
+    for (const w of WORD_LIST) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    for (const lst of window._customLists) {
+      for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    }
+    return merged;
+  }
+  // custom list by index
+  const idx = parseInt(val);
+  if (!isNaN(idx) && window._customLists[idx]) return window._customLists[idx].words;
+  return WORD_LIST;
+}
+
 function generatePassphrase() {
   const numWords = parseInt(document.getElementById('pp-words').value);
   const qty      = parseInt(document.getElementById('pp-qty').value);
   const caps     = document.getElementById('pp-caps').checked;
   const extras   = document.getElementById('pp-extras').checked;
   const sep      = document.getElementById('pp-sep').value;
+  const list     = getActiveWordList();
 
   const SPECIAL = '!@#$%^&*';
   const NUMS    = '0123456789';
-  const list    = WORD_LIST;
 
   const phrases = [];
   for (let q = 0; q < qty; q++) {
@@ -480,7 +623,7 @@ function generatePassphrase() {
     phrases.push(words.join(sep));
   }
   window._lastPP = phrases;
-  renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, WORD_LIST.length));
+  renderItems('pp-output', phrases, 'purple', (p) => calcEntropyForPassphrase(p, list.length));
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
 }
@@ -495,24 +638,141 @@ function generatePIN() {
   for (let i = 0; i < qty; i++) {
     let digits = '';
     for (let j = 0; j < length; j++) digits += randInt(10).toString();
-    if (spaces) {
-      // group into chunks of 3 (e.g. 123 456 789)
-      digits = digits.match(/.{1,3}/g).join(' ');
-    }
+    if (spaces) digits = digits.match(/.{1,3}/g).join(' ');
     pins.push(digits);
   }
   window._lastPIN = pins;
-  // PIN entropy: length × log2(10)
   renderItems('pin-output', pins, 'blue', (p) => Math.round(p.replace(/\s/g,'').length * Math.log2(10)));
   document.getElementById('pin-count').textContent = qty + ' generated';
   document.getElementById('pin-copy-all').style.display = '';
   saveSettings();
 }
 
+// ── SETTINGS MODAL ────────────────────────────────────────────────────────────
+function openSettings() {
+  renderWordListUI();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+// Generator visibility
+const GENERATOR_IDS = ['password','passphrase','pin','uuid','apikey','username'];
+const GENERATOR_DEFAULTS = { password: true, passphrase: true, pin: false, uuid: false, apikey: false, username: false };
+
+function toggleGenerator(name, enabled) {
+  const tog = document.getElementById('tog-' + name);
+  if (tog) tog.classList.toggle('active', enabled);
+  const card = document.getElementById('section-' + name);
+  if (card) card.style.display = enabled ? '' : 'none';
+  saveSettings();
+}
+
+// ── WORD LISTS ─────────────────────────────────────────────────────────────────
+window._customLists = []; // [{name, words}]
+
+function renderWordListUI() {
+  const container = document.getElementById('wl-list');
+  container.innerHTML = '';
+
+  // Built-in entry (not removable)
+  const builtin = document.createElement('div');
+  builtin.className = 'wl-item';
+  builtin.innerHTML = `
+    <span class="wl-item-name">Built-in</span>
+    <span class="wl-item-count">${WORD_LIST.length.toLocaleString()} words</span>
+    <span class="wl-item-badge builtin">default</span>`;
+  container.appendChild(builtin);
+
+  // Custom lists
+  window._customLists.forEach((lst, i) => {
+    const row = document.createElement('div');
+    row.className = 'wl-item';
+    row.innerHTML = `
+      <span class="wl-item-name">${escHtml(lst.name)}</span>
+      <span class="wl-item-count">${lst.words.length.toLocaleString()} words</span>
+      <span class="wl-item-badge">custom</span>
+      <button class="wl-remove" title="Remove" onclick="removeWordList(${i})">✕</button>`;
+    container.appendChild(row);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function removeWordList(idx) {
+  window._customLists.splice(idx, 1);
+  renderWordListUI();
+  rebuildWordListSelector();
+  saveSettings();
+}
+
+function loadWordListFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('wl-load-status');
+  status.textContent = 'Loading…';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const words = e.target.result.split(/\r?\n/).map(w => w.trim()).filter(w => w.length > 0);
+    if (words.length < 20) {
+      status.textContent = '✗ Too few words (min 20)';
+      setTimeout(() => status.textContent = '', 3000);
+    } else {
+      const name = file.name.replace(/\.txt$/i, '');
+      window._customLists.push({ name, words });
+      renderWordListUI();
+      rebuildWordListSelector();
+      saveSettings();
+      status.textContent = `✓ ${words.length.toLocaleString()} words loaded`;
+      setTimeout(() => status.textContent = '', 3000);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function rebuildWordListSelector() {
+  const sel = document.getElementById('pp-wordlist');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+
+  const opt = (val, label) => {
+    const o = document.createElement('option');
+    o.value = val; o.textContent = label;
+    return o;
+  };
+
+  sel.appendChild(opt('builtin', `Built-in (${WORD_LIST.length.toLocaleString()})`));
+  window._customLists.forEach((lst, i) => {
+    sel.appendChild(opt(String(i), `${lst.name} (${lst.words.length.toLocaleString()})`));
+  });
+  if (window._customLists.length > 0) {
+    // compute merged count for label
+    const seen = new Set();
+    let count = 0;
+    for (const w of WORD_LIST) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } }
+    for (const lst of window._customLists) {
+      for (const w of lst.words) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } }
+    }
+    sel.appendChild(opt('all', `All lists (${count.toLocaleString()}, deduped)`));
+  }
+  // restore selection if still valid
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
 // ── LOCALSTORAGE PERSISTENCE ──────────────────────────────────────────────────
-const LS_KEY = 'pwgen_settings_v1';
+const LS_KEY = 'pwgen_settings_v2';
 
 function collectSettings() {
+  const gens = {};
+  GENERATOR_IDS.forEach(id => {
+    const tog = document.getElementById('tog-' + id);
+    gens[id] = tog ? tog.querySelector('input').checked : GENERATOR_DEFAULTS[id];
+  });
   return {
     pwLength:   document.getElementById('pw-length').value,
     pwQty:      document.getElementById('pw-qty').value,
@@ -526,18 +786,21 @@ function collectSettings() {
     ppCaps:     document.getElementById('pp-caps').checked,
     ppExtras:   document.getElementById('pp-extras').checked,
     ppSep:      document.getElementById('pp-sep').value,
+    ppWordlist: document.getElementById('pp-wordlist') ? document.getElementById('pp-wordlist').value : 'builtin',
     pinLength:  document.getElementById('pin-length').value,
     pinQty:     document.getElementById('pin-qty').value,
     pinSpaces:  document.getElementById('pin-spaces').checked,
     darkMode:   !document.body.classList.contains('light'),
+    generators: gens,
+    customLists: window._customLists.map(lst => ({ name: lst.name, words: lst.words })),
   };
 }
 
 function applySettings(s) {
   if (!s) return;
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
-  const lbl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+  const chk = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.checked = val; };
+  const lbl = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.textContent = val; };
 
   set('pw-length', s.pwLength);   lbl('pw-len-val', s.pwLength);
   set('pw-qty',    s.pwQty);      lbl('pw-qty-val', s.pwQty);
@@ -561,6 +824,39 @@ function applySettings(s) {
     document.body.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙 Dark';
   }
+
+  // Restore custom word lists
+  if (s.customLists && Array.isArray(s.customLists)) {
+    window._customLists = s.customLists;
+  }
+  rebuildWordListSelector();
+  if (s.ppWordlist) {
+    const sel = document.getElementById('pp-wordlist');
+    if (sel && [...sel.options].some(o => o.value === s.ppWordlist)) sel.value = s.ppWordlist;
+  }
+
+  // Restore generator visibility
+  if (s.generators) {
+    GENERATOR_IDS.forEach(id => {
+      const enabled = s.generators[id] !== undefined ? s.generators[id] : GENERATOR_DEFAULTS[id];
+      const tog = document.getElementById('tog-' + id);
+      if (tog) {
+        tog.querySelector('input').checked = enabled;
+        tog.classList.toggle('active', enabled);
+      }
+      const card = document.getElementById('section-' + id);
+      if (card) card.style.display = enabled ? '' : 'none';
+    });
+  } else {
+    // First run — apply defaults (password + passphrase shown, others hidden)
+    GENERATOR_IDS.forEach(id => {
+      const enabled = GENERATOR_DEFAULTS[id];
+      const card = document.getElementById('section-' + id);
+      if (card) card.style.display = enabled ? '' : 'none';
+      const tog = document.getElementById('tog-' + id);
+      if (tog) { tog.querySelector('input').checked = enabled; tog.classList.toggle('active', enabled); }
+    });
+  }
 }
 
 function saveSettings() {
@@ -573,10 +869,10 @@ function loadSettings() {
 
 // Wire up all inputs to auto-save on change
 document.addEventListener('DOMContentLoaded', () => {
+  rebuildWordListSelector();
   applySettings(loadSettings());
-  document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text]')
+  document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
     .forEach(el => el.addEventListener('change', saveSettings));
-  // sliders fire 'input' for live label update but save on 'change' (mouseup) to avoid thrashing
 });
 </script>
 </body>
