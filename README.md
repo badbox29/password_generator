@@ -21,8 +21,9 @@ https://badbox29.github.io/password_generator/
 - **Crypto tab** — BIP-39 Mnemonics with optional derived seed hex
 - **Entropy display** — hover tooltips on generated output show both theoretical entropy (full character set) and effective entropy (based on actual generation structure); strength ratings use effective entropy throughout
 - **Minimum entropy floor** — password and passphrase generators include a floor slider that filters output to only include results meeting the set threshold; words-per-phrase and password length auto-adjust when the floor exceeds what current settings can achieve
-- **Word lists** — built-in curated word list; import custom `.txt` word lists via Settings; lists are stored in localStorage and deduplicated when combined; per-generator word list selector with an "All lists" merge option
-- **Settings modal** — toggle individual generators on/off; manage word lists; active generators persist across sessions
+- **Word lists** — built-in curated word list; import custom `.txt` word lists via Settings; lists are stored in localStorage and deduplicated when combined; prefix-based grouping merges related lists automatically in the selector
+- **Novelty word lists** — a separate novelty list system for themed passphrase generation; loaded and managed independently from standard lists; activated per-session via a toggle on the Passphrases card
+- **Settings modal** — toggle individual generators on/off; manage standard and novelty word lists in separate tabs; active generators persist across sessions
 - **Tab system** — tabs appear only when non-General generators are enabled; each tab shows only its category's active generators
 - **Cryptographically secure RNG** — uses `crypto.getRandomValues()` with rejection sampling to eliminate modulo bias throughout
 - **Copy support** — per-item copy button and Copy All on every generator
@@ -56,13 +57,37 @@ Open `index.html` directly in a browser for local use, or host it on GitHub Page
 
 ### 2. Word Lists
 
-The app ships with a built-in curated word list of ~515 words suitable for passphrase generation. For stronger passphrases with a wider vocabulary, import a custom word list:
+The app ships with a built-in curated word list of ~515 words suitable for passphrase generation. For stronger passphrases with a wider vocabulary, import custom word lists via **Settings → Word Lists → Standard**.
 
-1. Open **Settings** → **Word Lists** → **Add list from .txt file**.
-2. Select any plain text file with one word per line (minimum 20 words).
-3. The list is stored in localStorage and becomes available in the word list selector on the Passphrases generator.
+#### Prefix-based grouping
 
-Multiple lists can be loaded simultaneously. Selecting **All lists (deduped)** in the generator merges all active lists with case-insensitive deduplication.
+Word lists are automatically grouped in the dropdown by filename prefix — the part of the name before the first hyphen. This applies to both standard and novelty lists.
+
+| Filename | Dropdown entry |
+|---|---|
+| `words.txt` | Words |
+| `words-french.txt` | Words (merged with above) |
+| `words-latin.txt` | Words (merged with above) |
+| `diceware.txt` | Diceware |
+| `diceware-short.txt` | Diceware (merged with above) |
+
+The built-in list is always part of the **Words** group. Any `.txt` file whose name starts with `words-` is automatically merged into it. Lists without a hyphen become their own standalone group entry.
+
+Multiple groups can be active simultaneously. **All lists (deduped)** merges everything with case-insensitive deduplication.
+
+---
+
+### 3. Novelty Word Lists
+
+Novelty lists are a separate system for themed passphrase generation — gross words, pirate speak, fictional languages, or any other themed vocabulary. They are managed independently from standard lists and never appear in the standard selector.
+
+1. Open **Settings → Word Lists → Novelty**.
+2. Add `.txt` files using the same one-word-per-line format (minimum 20 words).
+3. The same prefix-grouping rules apply — `gross-adjectives.txt` and `gross-foods.txt` both appear under **Gross** in the novelty selector.
+4. Once at least one novelty list is loaded, a **Novelty** toggle appears on the Passphrases card. Enabling it swaps the word list dropdown to show only novelty groups.
+5. Disabling the toggle or removing all novelty lists returns the selector to standard mode.
+
+Novelty lists use the same passphrase generation engine — capitalization, injection, separator, and entropy calculations all apply normally.
 
 ---
 
