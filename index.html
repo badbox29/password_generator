@@ -358,7 +358,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </div>
           <div class="field">
             <label>Length <span class="val" id="pw-len-val">26</span></label>
-            <input type="range" id="pw-length" min="4" max="128" value="26" oninput="document.getElementById('pw-len-val').textContent=this.value">
+            <input type="range" id="pw-length" min="4" max="128" value="26"
+              oninput="document.getElementById('pw-len-val').textContent=this.value; _pwLengthUserPref=parseInt(this.value);">
           </div>
         </div>
         <!-- Memorable mode panel -->
@@ -390,7 +391,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
         <div class="field">
           <label>Min entropy <span class="val entropy-floor-val" id="pw-floor-val">0 bits</span></label>
-          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val')">
+          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val'); syncLengthToFloor();">
         </div>
         <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
@@ -1185,13 +1186,17 @@ function generatePassword() {
     };
   }
 
-  const results  = [];
-  const maxTries = qty * 200;
-  let   tries    = 0;
-  while (results.length < qty && tries < maxTries) {
+  const results   = [];
+  const DRY_LIMIT = 2000;
+  let   dryStreak = 0;
+  while (results.length < qty && dryStreak < DRY_LIMIT) {
     const p = makeOne();
-    if (floor === 0 || calcEntropyForPassword(p) >= floor) results.push(p);
-    tries++;
+    if (floor === 0 || calcEntropyForPassword(p) >= floor) {
+      results.push(p);
+      dryStreak = 0;
+    } else {
+      dryStreak++;
+    }
   }
 
   if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
@@ -1205,39 +1210,61 @@ function generatePassword() {
 // ── PASSPHRASE ────────────────────────────────────────────────────────────────
 const RANDOM_SEPS = ['-','_','.','~','/','+',' ',':','=','@','!','#','*'];
 
-// Tracks the user's manually chosen words-per-phrase preference.
-// The slider may move above this when floor demands it, but never below.
-let _ppWordsUserPref = 4;
+// User preference memory for passphrase words and password length
+let _ppWordsUserPref  = 4;
+let _pwLengthUserPref = 26;
+
+// Sync password length up when floor exceeds what current length can achieve,
+// back down (to user pref) when floor is lowered.
+function syncLengthToFloor() {
+  const floor  = parseInt(document.getElementById('pw-floor').value) || 0;
+  const slider = document.getElementById('pw-length');
+  const label  = document.getElementById('pw-len-val');
+  if (floor === 0) {
+    slider.value    = _pwLengthUserPref;
+    label.textContent = _pwLengthUserPref;
+    return;
+  }
+  // Calculate pool size from current checkboxes
+  const upper = document.getElementById('pw-upper').checked;
+  const lower = document.getElementById('pw-lower').checked;
+  const nums  = document.getElementById('pw-nums').checked;
+  const spec  = document.getElementById('pw-special').checked;
+  const noAmb = document.getElementById('pw-noambig').checked;
+  let poolSize = 0;
+  if (upper) poolSize += noAmb ? 24 : 26;
+  if (lower) poolSize += noAmb ? 24 : 26;
+  if (nums)  poolSize += noAmb ? 8  : 10;
+  if (spec)  poolSize += 32;
+  if (poolSize < 2) return;
+  const bitsPerChar = Math.log2(poolSize);
+  // Min length needed so theoretical max reaches floor
+  const minLen  = Math.ceil(floor / bitsPerChar);
+  const effective = Math.min(128, Math.max(_pwLengthUserPref, minLen));
+  slider.value      = effective;
+  label.textContent = effective;
+}
 
 function syncWordsToFloor() {
   const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
   const list     = getActiveWordList();
   const slider   = document.getElementById('pp-words');
   const label    = document.getElementById('pp-words-val');
-
   if (floor === 0) {
-    // Floor cleared — snap back to user's preference
     slider.value      = _ppWordsUserPref;
     label.textContent = _ppWordsUserPref;
     return;
   }
-
-  const extras       = document.getElementById('pp-extras').checked;
-  const bitsPerWord  = Math.log2(list.length);
-  // Extras conservatively add ~log2(36) bits per injected char, avg ~1.5 chars per phrase
-  const extrasBits   = extras ? 1.5 * Math.log2(36) : 0;
-
-  // Find the minimum word count where the theoretical max entropy can reach the floor
-  // theoretical max for n words = n * bitsPerWord + extrasBits
+  const extras      = document.getElementById('pp-extras').checked;
+  const bitsPerWord = Math.log2(list.length);
+  // Use high-side average: typical phrase yields ~2.5 injected chars at log2(36) each
+  const extrasBits  = extras ? 2.5 * Math.log2(36) : 0;
+  // Find lowest word count where HIGH-SIDE AVERAGE entropy >= floor
   let minNeeded = _ppWordsUserPref;
   for (let n = _ppWordsUserPref; n <= 9; n++) {
-    if (n * bitsPerWord + extrasBits >= floor) {
-      minNeeded = n;
-      break;
-    }
-    minNeeded = n + 1; // floor exceeds even 9 words — will cap below
+    if (n * bitsPerWord + extrasBits >= floor) { minNeeded = n; break; }
+    minNeeded = n + 1;
   }
-
   const effective   = Math.min(9, Math.max(_ppWordsUserPref, minNeeded));
   slider.value      = effective;
   label.textContent = effective;
@@ -1302,15 +1329,17 @@ function generatePassphrase() {
     return words.join(getActiveSep());
   }
 
-  const phrases  = [];
-  const maxTries = qty * 200; // safety cap
-  let   tries    = 0;
-  while (phrases.length < qty && tries < maxTries) {
+  const phrases   = [];
+  const DRY_LIMIT = 2000;
+  let   dryStreak = 0;
+  while (phrases.length < qty && dryStreak < DRY_LIMIT) {
     const p = makePhrase();
     if (floor === 0 || calcEntropyForPassphrase(p, list.length) >= floor) {
       phrases.push(p);
+      dryStreak = 0;
+    } else {
+      dryStreak++;
     }
-    tries++;
   }
 
   if (!phrases.length) {
@@ -1789,6 +1818,7 @@ function applySettings(s) {
   const lbl = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.textContent = v; };
 
   set('pw-length', s.pwLength);   lbl('pw-len-val', s.pwLength);
+  if (s.pwLength !== undefined) _pwLengthUserPref = parseInt(s.pwLength);
   set('pw-qty',    s.pwQty);      lbl('pw-qty-val', s.pwQty);
   chk('pw-upper',   s.pwUpper);   chk('pw-lower',  s.pwLower);
   chk('pw-nums',    s.pwNums);    chk('pw-special', s.pwSpecial);
