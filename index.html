@@ -60,7 +60,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 /* SEGMENTED CONTROL */
 .seg-ctrl{display:flex;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px;}
-.seg-btn{flex:1;padding:5px 8px;font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.seg-btn{flex:1;padding:5px 6px;font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
 .seg-btn.active{background:var(--bg-card);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,0.3);}
 .seg-btn:hover:not(.active){color:var(--text-secondary);}
 
@@ -324,7 +324,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="seg-ctrl" id="pw-mode-ctrl">
           <button class="seg-btn active" onclick="setPwMode('random')">Random</button>
           <button class="seg-btn" onclick="setPwMode('memorable')">Memorable</button>
-          <button class="seg-btn" onclick="setPwMode('pronounceable')">Pronounceable</button>
+          <button class="seg-btn" onclick="setPwMode('pronounceable')">Pronounce</button>
         </div>
         <!-- Random mode panel -->
         <div id="pw-panel-random">
