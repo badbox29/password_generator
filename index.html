@@ -171,14 +171,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .entropy-floor-strength.vstrong{color:#06b6d4;}
 .entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:10px 14px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:220px;transform:translateX(-50%);}
 .entropy-tip.visible{display:block;}
-.tip-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:3px;}
+.tip-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:2px;}
 .tip-bits-theoretical{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);}
-.tip-bits-label{font-size:10px;color:var(--text-muted);text-align:right;}
 .tip-bits-effective{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
-.tip-strength{font-size:11px;font-weight:600;text-align:right;}
-.tip-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:5px 0;}
+.tip-sublabel{font-size:10px;color:var(--text-muted);}
+.tip-strength{font-size:11px;font-weight:600;}
+.tip-divider{border:none;border-top:1px solid var(--border);margin:6px 0;}
+.tip-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:4px 0 6px;}
 .tip-bar{height:100%;border-radius:2px;transition:width .2s;}
-.tip-footer{font-size:9px;color:var(--text-muted);margin-top:5px;line-height:1.4;max-width:220px;white-space:normal;}
+.tip-footer{font-size:9px;color:var(--text-muted);line-height:1.4;max-width:220px;white-space:normal;}
 .tip-arrow{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--border-light);}
 
 /* TOAST */
@@ -902,17 +903,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 <div class="toast" id="toast"></div>
 <div class="entropy-tip" id="entropyTip">
   <div class="tip-row">
-    <span class="tip-bits-theoretical" id="tip-theoretical"></span>
-    <span class="tip-bits-label">theoretical entropy</span>
-  </div>
-  <div class="tip-row">
-    <span class="tip-bits-effective" id="tip-effective"></span>
-    <span class="tip-strength" id="tip-strength"></span>
+    <div>
+      <div class="tip-bits-theoretical" id="tip-theoretical"></div>
+      <div class="tip-sublabel">theoretical entropy</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="tip-bits-effective" id="tip-effective"></div>
+      <div class="tip-sublabel" id="tip-strength" style="margin-top:1px;"></div>
+    </div>
   </div>
   <div class="tip-bar-wrap"><div class="tip-bar" id="tip-bar"></div></div>
-  <div class="tip-row" style="margin-bottom:0;">
-    <span class="tip-bits-label" style="font-size:9px;">effective entropy</span>
-  </div>
+  <div class="tip-sublabel" style="text-align:right;margin-bottom:4px;">effective entropy</div>
+  <hr class="tip-divider">
   <div class="tip-footer">Effective entropy is used for strength ratings and minimum-strength thresholds.</div>
   <div class="tip-arrow"></div>
 </div>
