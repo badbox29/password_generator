@@ -34,13 +34,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .topbar-actions{display:flex;gap:8px;align-items:center;}
 
 /* TABS */
-.tabs-bar{background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:49px;z-index:190;display:none;}
-.tabs-bar.visible{display:block;}
-.tabs-inner{max-width:1000px;margin:0 auto;padding:0 40px;display:flex;gap:0;}
-.tab-btn{padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s;white-space:nowrap;}
+/* TABS — rendered inside .wrap, above the first card */
+.tabs-nav{display:none;margin-bottom:0;}
+.tabs-nav.visible{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+.tab-btn{padding:8px 18px;font-size:13px;font-weight:600;color:var(--text-muted);background:var(--bg-card2);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,background .15s;white-space:nowrap;}
 .tab-btn:hover{color:var(--text-secondary);}
-.tab-btn.active{color:var(--text-primary);border-bottom-color:var(--blue);}
-/* when tabs are showing, the wrap needs no extra top gap — tabs provide the separation */
+.tab-btn.active{background:var(--bg-card);color:var(--text-primary);border-color:var(--border);}
+/* when tabs are showing, the wrap needs no extra top gap */
 .wrap.tabs-showing{padding-top:16px;}
 
 /* LAYOUT */
@@ -206,10 +206,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
   </div>
 </div>
 
-<div class="tabs-bar" id="tabsBar">
-  <div class="tabs-inner" id="tabsInner"></div>
-</div>
-
 <!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
   <div class="modal">
@@ -312,6 +308,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 </div>
 
 <div class="wrap">
+
+  <div class="tabs-nav" id="tabsNav"></div>
 
   <!-- ══════════════════ GENERAL TAB ══════════════════ -->
   <div class="tab-page active" id="tab-general">
@@ -1035,14 +1033,12 @@ function rebuildTabBar() {
     })
   );
   const activeTabs = TAB_DEFS.filter(t => t.always || [...activeGens].some(g => GEN_TAB[g] === t.id));
-  const bar = document.getElementById('tabsBar');
-  const inner = document.getElementById('tabsInner');
+  const nav = document.getElementById('tabsNav');
   const showTabs = activeTabs.length > 1;
-  bar.classList.toggle('visible', showTabs);
+  nav.classList.toggle('visible', showTabs);
   document.querySelector('.wrap').classList.toggle('tabs-showing', showTabs);
-  inner.innerHTML = '';
+  nav.innerHTML = '';
   if (!showTabs) {
-    // ensure general tab is active and visible
     switchTab('general');
     return;
   }
@@ -1052,7 +1048,7 @@ function rebuildTabBar() {
     btn.textContent = t.label;
     btn.dataset.tab = t.id;
     btn.addEventListener('click', () => switchTab(t.id));
-    inner.appendChild(btn);
+    nav.appendChild(btn);
   });
   // If current active tab is no longer visible, switch to general
   if (!activeTabs.find(t => t.id === _activeTab)) switchTab('general');
