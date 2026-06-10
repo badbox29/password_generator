@@ -65,7 +65,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
   .section-right{position:static;border-left:none;min-height:240px;}
 }
 
-/* SEGMENTED CONTROL */
+/* JWT card needs normal flow layout — decoded panel expands vertically */
+#section-jwt{overflow:visible;}
+#section-jwt .section-right{position:static;border-left:1px solid var(--border);min-height:300px;}
 .seg-ctrl{display:flex;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px;}
 .seg-btn{flex:1;padding:5px 6px;font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
 .seg-btn.active{background:var(--bg-card);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,0.3);}
