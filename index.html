@@ -15,6 +15,7 @@
   --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);
   --cyan:#22d3ee;--cyan-dim:rgba(34,211,238,0.1);
   --orange:#f59e0b;--orange-dim:rgba(245,158,11,0.12);
+  --rose:#f43f5e;--rose-hover:#e11d48;--rose-dim:rgba(244,63,94,0.12);
   --red:#ef4444;--red-dim:rgba(239,68,68,0.12);
 }
 .light {
@@ -24,6 +25,7 @@
   --blue-dim:rgba(59,130,246,0.1);--green-dim:rgba(34,197,94,0.1);
   --purple-dim:rgba(167,139,250,0.1);--cyan-dim:rgba(34,211,238,0.08);
   --orange-dim:rgba(245,158,11,0.1);--red-dim:rgba(239,68,68,0.1);
+  --rose-dim:rgba(244,63,94,0.1);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh;transition:background .2s,color .2s;}
@@ -76,6 +78,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .ci-green{background:var(--green-dim);color:var(--green);}
 .ci-cyan{background:var(--cyan-dim);color:var(--cyan);}
 .ci-orange{background:var(--orange-dim);color:var(--orange);}
+.ci-rose{background:var(--rose-dim);color:var(--rose);}
 .ci-red{background:var(--red-dim);color:var(--red);}
 .card-title{font-size:15px;font-weight:600;}
 
@@ -101,14 +104,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 /* BUTTONS */
 .btn-primary{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;display:inline-flex;align-items:center;gap:7px;width:100%;justify-content:center;}
 .btn-primary:hover{background:var(--blue-hover);}
+.btn-primary .bolt{text-shadow:0 0 6px rgba(0,0,0,0.5),0 1px 3px rgba(0,0,0,0.4);}
 .btn-primary.green{background:var(--green);}
 .btn-primary.green:hover{background:#16a34a;}
 .btn-primary.purple{background:var(--purple);}
 .btn-primary.purple:hover{background:#8b6ef0;}
 .btn-primary.cyan{background:var(--cyan);color:#0f172a;}
 .btn-primary.cyan:hover{background:#06b6d4;}
+.btn-primary.cyan .bolt{text-shadow:0 0 6px rgba(0,0,0,0.3),0 1px 3px rgba(0,0,0,0.3);}
 .btn-primary.orange{background:var(--orange);}
 .btn-primary.orange:hover{background:#d97706;}
+.btn-primary.rose{background:var(--rose);}
+.btn-primary.rose:hover{background:var(--rose-hover);}
 .btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .btn-ghost:hover{color:var(--text-primary);border-color:var(--border-light);}
 
@@ -133,6 +140,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .item-text.green{color:var(--green);}
 .item-text.cyan{color:var(--cyan);}
 .item-text.orange{color:var(--orange);}
+.item-text.rose{color:var(--rose);}
 .copy-btn{cursor:pointer;opacity:0.45;transition:opacity .2s;flex-shrink:0;font-size:13px;padding:2px 4px;border-radius:4px;margin-top:1px;}
 .copy-btn:hover{opacity:1;background:var(--bg-card2);}
 
@@ -374,7 +382,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="pw-qty-val">15</span></label>
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -421,7 +429,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label style="margin-bottom:5px;">Word list</label>
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
         </div>
-        <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -457,7 +465,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="pin-qty-val">15</span></label>
           <input type="range" id="pin-qty" min="1" max="45" value="15" oninput="document.getElementById('pin-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary green" onclick="generatePIN()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary green" onclick="generatePIN()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -501,7 +509,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="un-qty-val">15</span></label>
           <input type="range" id="un-qty" min="1" max="45" value="15" oninput="document.getElementById('un-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary purple" onclick="generateUsername()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary purple" onclick="generateUsername()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -526,7 +534,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
     <div class="section-card" id="section-apikey" style="display:none">
       <div class="section-left">
         <div class="card-hd">
-          <div class="card-icon ci-orange">🔑</div>
+          <div class="card-icon ci-rose">🔑</div>
           <div class="card-title">API Key / Token</div>
         </div>
         <div class="field">
@@ -547,7 +555,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="ak-qty-val">10</span></label>
           <input type="range" id="ak-qty" min="1" max="45" value="10" oninput="document.getElementById('ak-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary orange" onclick="generateApiKey()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary rose" onclick="generateApiKey()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -586,7 +594,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="rc-qty-val">10</span></label>
           <input type="range" id="rc-qty" min="1" max="20" value="10" oninput="document.getElementById('rc-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary orange" onclick="generateRecoveryCodes()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary rose" onclick="generateRecoveryCodes()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -623,7 +631,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="totp-qty-val">5</span></label>
           <input type="range" id="totp-qty" min="1" max="20" value="5" oninput="document.getElementById('totp-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary orange" onclick="generateTOTP()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary rose" onclick="generateTOTP()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -660,7 +668,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="uuid-qty-val">10</span></label>
           <input type="range" id="uuid-qty" min="1" max="45" value="10" oninput="document.getElementById('uuid-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary cyan" onclick="generateUUID()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary cyan" onclick="generateUUID()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -711,7 +719,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label style="margin-bottom:4px;">Extra claims (JSON)</label>
           <textarea id="jwt-claims" class="claims-area" placeholder='{"role":"admin"}'></textarea>
         </div>
-        <button class="btn-primary cyan" onclick="generateJWT()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary cyan" onclick="generateJWT()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -751,7 +759,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="wh-qty-val">5</span></label>
           <input type="range" id="wh-qty" min="1" max="20" value="5" oninput="document.getElementById('wh-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary cyan" onclick="generateWebhook()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary cyan" onclick="generateWebhook()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -783,7 +791,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label style="margin-bottom:4px;">Input text</label>
             <textarea id="b64-input" class="b64-input" placeholder="Type or paste text to encode…"></textarea>
           </div>
-          <button class="btn-primary cyan" onclick="encodeBase64()" style="margin-top:4px;">⚡ Encode</button>
+          <button class="btn-primary cyan" onclick="encodeBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
         </div>
         <div id="b64-panel-generate" style="display:none">
           <div class="field">
@@ -794,7 +802,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label>Quantity <span class="val" id="b64-qty-val">10</span></label>
             <input type="range" id="b64-qty" min="1" max="45" value="10" oninput="document.getElementById('b64-qty-val').textContent=this.value">
           </div>
-          <button class="btn-primary cyan" onclick="generateBase64()" style="margin-top:4px;">⚡ Generate</button>
+          <button class="btn-primary cyan" onclick="generateBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
         </div>
       </div>
       <div class="section-right">
@@ -843,7 +851,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="bip-qty-val">3</span></label>
           <input type="range" id="bip-qty" min="1" max="10" value="3" oninput="document.getElementById('bip-qty-val').textContent=this.value">
         </div>
-        <button class="btn-primary orange" onclick="generateBIP39()" style="margin-top:auto;">⚡ Generate</button>
+        <button class="btn-primary orange" onclick="generateBIP39()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
         <div class="notice" style="margin-top:12px;">Browser-generated mnemonics are suitable for testing only. Use air-gapped hardware for real funds.</div>
       </div>
       <div class="section-right">
@@ -1310,7 +1318,7 @@ function generateApiKey() {
     results.push(key);
   }
   window._lastAK = results;
-  renderItems('ak-output', results, 'orange', () => 0);
+  renderItems('ak-output', results, 'rose', () => 0);
   document.getElementById('ak-count').textContent = qty + ' generated';
   document.getElementById('ak-copy-all').style.display = '';
 }
@@ -1334,7 +1342,7 @@ function generateRecoveryCodes() {
     results.push(hyphen ? parts.join('-') : parts.join(''));
   }
   window._lastRC = results;
-  renderItems('rc-output', results, 'orange', () => 0);
+  renderItems('rc-output', results, 'rose', () => 0);
   document.getElementById('rc-count').textContent = qty + ' generated';
   document.getElementById('rc-copy-all').style.display = '';
 }
@@ -1354,7 +1362,7 @@ function generateTOTP() {
     results.push(spaces ? b32.match(/.{1,4}/g).join(' ') : b32);
   }
   window._lastTOTP = results;
-  renderItems('totp-output', results, 'orange', () => 0);
+  renderItems('totp-output', results, 'rose', () => 0);
   document.getElementById('totp-count').textContent = qty + ' generated';
   document.getElementById('totp-copy-all').style.display = '';
 }
