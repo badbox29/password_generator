@@ -135,7 +135,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 #jwt-output{display:flex;flex-direction:column;grid-template-columns:none;max-height:none;}
 .output-body.wide{grid-template-columns:1fr;}
 .output-empty{display:flex;align-items:center;justify-content:center;min-height:160px;padding:20px;}
-.watermark{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;opacity:0.07;user-select:none;pointer-events:none;}
+.watermark{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;opacity:0.07;user-select:none;pointer-events:none;text-align:center;}
 
 /* ITEMS */
 .item{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 8px;border-radius:6px;transition:background .1s;}
@@ -653,7 +653,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </div>
         </div>
         <div class="output-body" id="rc-output" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
-          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:24px;">recovery codes</span></div>
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">recovery codes</span></div>
         </div>
       </div>
     </div>
@@ -690,7 +690,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </div>
         </div>
         <div class="output-body wide" id="totp-output">
-          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:24px;">totp secrets</span></div>
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">totp secrets</span></div>
         </div>
       </div>
     </div>
@@ -911,7 +911,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </div>
         </div>
         <div class="output-body wide" id="bip-output">
-          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:24px;">mnemonics</span></div>
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">mnemonics</span></div>
         </div>
       </div>
     </div>
