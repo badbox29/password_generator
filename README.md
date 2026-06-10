@@ -62,8 +62,6 @@ The app ships with a built-in curated word list of ~515 words suitable for passp
 2. Select any plain text file with one word per line (minimum 20 words).
 3. The list is stored in localStorage and becomes available in the word list selector on the Passphrases generator.
 
-The included `wordlist_obscure_2000.txt` file contains ~2,000 words drawn from minority and endangered languages (Basque, Welsh, Cornish, Breton, Faroese, Quechua, Nahuatl, Guaraní, Yoruba, Malagasy, Ainu, and others) and can be imported as a custom list.
-
 Multiple lists can be loaded simultaneously. Selecting **All lists (deduped)** in the generator merges all active lists with case-insensitive deduplication.
 
 ---
