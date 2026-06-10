@@ -952,16 +952,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 <div class="toast" id="toast"></div>
 <div class="entropy-tip" id="entropyTip">
-  <div class="tip-section-label">Effective Entropy</div>
+  <div class="tip-section-label" id="tip-effective-label">Effective Entropy</div>
   <div class="tip-row">
     <span class="tip-bits-effective" id="tip-effective"></span>
     <span class="tip-strength" id="tip-strength"></span>
   </div>
   <div class="tip-bar-wrap"><div class="tip-bar" id="tip-bar"></div></div>
-  <hr class="tip-divider">
-  <div class="tip-section-label" style="color:var(--text-muted);">Theoretical Entropy</div>
-  <div class="tip-bits-theoretical" id="tip-theoretical"></div>
-  <div class="tip-footer">Effective entropy is used for strength ratings and minimum-strength thresholds.</div>
+  <div id="tip-theoretical-section">
+    <hr class="tip-divider">
+    <div class="tip-section-label" style="color:var(--text-muted);">Theoretical Entropy</div>
+    <div class="tip-bits-theoretical" id="tip-theoretical"></div>
+    <div class="tip-footer">Effective entropy is used for strength ratings and minimum-strength thresholds.</div>
+  </div>
   <div class="tip-arrow"></div>
 </div>
 <script>
@@ -1064,16 +1066,14 @@ function showTip(el, effectiveBits, theoreticalBits) {
   const theoBits = theoreticalBits !== undefined ? theoreticalBits : effectiveBits;
   const same   = theoBits === effectiveBits;
 
-  _tip.querySelector('#tip-theoretical').textContent        = theoBits + ' bits';
-  _tip.querySelector('#tip-theoretical').parentElement.style.display = same ? 'none' : '';
-  _tip.querySelector('.tip-divider').style.display          = same ? 'none' : '';
-  _tip.querySelector('.tip-footer').style.display           = same ? 'none' : '';
-  _tip.querySelector('#tip-effective').textContent          = effectiveBits + ' bits';
-  _tip.querySelector('#tip-effective').style.color          = color;
-  _tip.querySelector('#tip-strength').textContent           = label;
-  _tip.querySelector('#tip-strength').style.color           = color;
-  _tip.querySelector('.tip-section-label').style.color      = color;
-  _tip.querySelector('.tip-section-label').textContent      = same ? 'Entropy' : 'Effective Entropy';
+  _tip.querySelector('#tip-theoretical').textContent              = theoBits + ' bits';
+  _tip.querySelector('#tip-theoretical-section').style.display    = same ? 'none' : '';
+  _tip.querySelector('#tip-effective').textContent                = effectiveBits + ' bits';
+  _tip.querySelector('#tip-effective').style.color                = color;
+  _tip.querySelector('#tip-strength').textContent                 = label;
+  _tip.querySelector('#tip-strength').style.color                 = color;
+  _tip.querySelector('#tip-effective-label').style.color          = color;
+  _tip.querySelector('#tip-effective-label').textContent          = same ? 'Entropy' : 'Effective Entropy';
   const bar = _tip.querySelector('#tip-bar');
   bar.style.width      = Math.min(100, effectiveBits / 1.28) + '%';
   bar.style.background = color;
