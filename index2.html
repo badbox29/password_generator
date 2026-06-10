@@ -1479,9 +1479,9 @@ function getActiveWordList() {
     for (const lst of window._noveltyLists) { for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } } }
     return merged;
   }
-  if (val.startsWith('novelty-')) {
-    const idx = parseInt(val.replace('novelty-', ''));
-    if (!isNaN(idx) && window._noveltyLists[idx]) return window._noveltyLists[idx].words;
+  if (val.startsWith('novelty-group-')) {
+    const key = val.replace('novelty-group-', '');
+    return noveltyGroupWords(key);
   }
 
   // Standard mode selections
@@ -2027,17 +2027,44 @@ function loadWordListFile(input) {
   };
   reader.readAsText(file);
 }
+// Extract group key from a list name: prefix before first hyphen, lowercased
+function noveltyGroupKey(name) {
+  const hyphen = name.indexOf('-');
+  return (hyphen > 0 ? name.slice(0, hyphen) : name).toLowerCase();
+}
+// Capitalize first letter for display
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// Build merged word array for a novelty group key (deduped)
+function noveltyGroupWords(key) {
+  const seen = new Set(); const merged = [];
+  for (const lst of window._noveltyLists) {
+    if (noveltyGroupKey(lst.name) === key) {
+      for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    }
+  }
+  return merged;
+}
+
 function rebuildWordListSelector() {
   const sel = document.getElementById('pp-wordlist'); if (!sel) return;
   const prev = sel.value; sel.innerHTML = '';
   const opt = (val, label) => { const o = document.createElement('option'); o.value = val; o.textContent = label; return o; };
 
   if (window._noveltyMode && window._noveltyLists.length > 0) {
-    // Novelty mode: show only novelty lists
-    window._noveltyLists.forEach((lst, i) => sel.appendChild(opt('novelty-' + i, `${lst.name} (${lst.words.length.toLocaleString()})`)));
-    if (window._noveltyLists.length > 1) {
-      const seen = new Set(); let count = 0;
-      for (const lst of window._noveltyLists) { for (const w of lst.words) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } } }
+    // Build ordered unique groups preserving first-seen order
+    const seen = new Set(); const groups = [];
+    for (const lst of window._noveltyLists) {
+      const key = noveltyGroupKey(lst.name);
+      if (!seen.has(key)) { seen.add(key); groups.push(key); }
+    }
+    groups.forEach(key => {
+      const words = noveltyGroupWords(key);
+      sel.appendChild(opt('novelty-group-' + key, `${capitalize(key)} (${words.length.toLocaleString()})`));
+    });
+    if (groups.length > 1) {
+      const allSeen = new Set(); let count = 0;
+      for (const lst of window._noveltyLists) { for (const w of lst.words) { if (!allSeen.has(w.toLowerCase())) { allSeen.add(w.toLowerCase()); count++; } } }
       sel.appendChild(opt('novelty-all', `All novelty lists (${count.toLocaleString()}, deduped)`));
     }
   } else {
