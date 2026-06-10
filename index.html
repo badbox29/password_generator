@@ -56,17 +56,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .tab-page.active{display:block;}
 
 /* SECTION CARDS */
-.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;position:relative;overflow:hidden;}
+.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;display:flex;align-items:stretch;overflow:hidden;}
 .section-left{width:280px;flex-shrink:0;padding:20px 24px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:0;}
-.section-right{position:absolute;top:0;bottom:0;left:280px;right:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border);}
+.section-right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
 @media(max-width:800px){
-  .section-card{display:flex;flex-direction:column;position:static;}
+  .section-card{flex-direction:column;}
   .section-left{width:auto;border-right:none;border-bottom:1px solid var(--border);}
-  .section-right{position:static;border-left:none;min-height:240px;}
+  .section-right{min-height:240px;}
 }
 
 /* JWT decoded panel scrolls within the fixed card height */
-#section-jwt .section-right{position:absolute;top:0;bottom:0;left:280px;right:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border);}
+#section-jwt .section-right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
 #jwt-output{display:flex;flex-direction:column;max-height:none;overflow-y:auto;}
 #jwt-output .item{flex:1;display:flex;flex-direction:column;}
 .jwt-decoded{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border:1px solid var(--border);margin-top:4px;color:var(--text-secondary);display:none;white-space:pre-wrap;word-break:break-all;overflow-y:auto;}
@@ -130,7 +130,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .output-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);}
 .output-actions{display:flex;gap:6px;align-items:center;}
 .output-count{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
-.output-body{padding:8px;overflow-y:auto;overflow-x:visible;flex:1;min-height:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;align-content:start;}
+.output-body{padding:8px;overflow-y:auto;overflow-x:visible;flex:1;min-height:0;max-height:60vh;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;align-content:start;}
 /* JWT output uses flex column so decoded panel can expand to fill height */
 #jwt-output{display:flex;flex-direction:column;grid-template-columns:none;max-height:none;}
 .output-body.wide{grid-template-columns:1fr;}
