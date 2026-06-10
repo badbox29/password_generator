@@ -38,7 +38,7 @@ https://badbox29.github.io/password_generator/
 ```
 password_generator/
 ├── index.html              # Entire app — HTML, CSS, and JS in one file
-├── wordlist_obscure_2000.txt  # Optional importable word list (obscure multilingual words)
+├── screenshot.png
 └── README.md
 ```
 
