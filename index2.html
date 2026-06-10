@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reliquary</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-page:#1a1a1f;--bg-card:#22222a;--bg-card2:#2a2a35;--bg-input:#16161c;
+  --border:#3a3a4a;--border-light:#4a4a5a;
+  --text-primary:#e8e8f0;--text-secondary:#9090a8;--text-muted:#606075;
+  --blue:#3b82f6;--blue-hover:#2563eb;--blue-dim:rgba(59,130,246,0.15);
+  --green:#22c55e;--green-dim:rgba(34,197,94,0.12);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.12);
+  --cyan:#0891b2;--cyan-dim:rgba(8,145,178,0.12);
+  --orange:#f59e0b;--orange-dim:rgba(245,158,11,0.12);
+  --rose:#f43f5e;--rose-hover:#e11d48;--rose-dim:rgba(244,63,94,0.12);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);
+}
+.light {
+  --bg-page:#f0f0f5;--bg-card:#ffffff;--bg-card2:#f5f5fa;--bg-input:#eaeaf2;
+  --border:#d0d0e0;--border-light:#b0b0cc;
+  --text-primary:#1a1a2e;--text-secondary:#5a5a78;--text-muted:#9090a8;
+  --blue-dim:rgba(59,130,246,0.1);--green-dim:rgba(34,197,94,0.1);
+  --purple-dim:rgba(167,139,250,0.1);--cyan-dim:rgba(34,211,238,0.08);
+  --orange-dim:rgba(245,158,11,0.1);--red-dim:rgba(239,68,68,0.1);
+  --rose-dim:rgba(244,63,94,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh;transition:background .2s,color .2s;}
+
+/* TOPBAR */
+.topbar{background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.topbar-title{font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+
+/* TABS */
+/* TABS — rendered inside .wrap, above the first card */
+.tabs-nav{display:none;margin-bottom:0;}
+.tabs-nav.visible{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+.tab-btn{padding:8px 18px;font-size:13px;font-weight:600;color:var(--text-muted);background:var(--bg-card2);border:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:8px 8px 0 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,background .15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text-secondary);}
+.tab-btn.active{background:var(--bg-card);color:var(--text-primary);border-color:var(--border);border-bottom-color:var(--bg-card);}
+/* first card under active tabs gets square top corners to meet the tab flush */
+.tabs-nav.visible + .tab-page.active > .section-card:first-child{border-top-left-radius:0;border-top-right-radius:0;}
+/* when tabs are showing, the wrap needs no extra top gap */
+.wrap.tabs-showing{padding-top:16px;}
+
+/* LAYOUT */
+.wrap{max-width:1000px;margin:0 auto;padding:16px 40px 60px;}
+@media(max-width:800px){.wrap{padding:12px 20px 60px;}.tabs-inner{padding:0 20px;}}
+
+/* TAB PAGES */
+.tab-page{display:none;}
+.tab-page.active{display:block;}
+
+/* SECTION CARDS */
+.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;display:flex;align-items:stretch;overflow:hidden;}
+.section-left{width:280px;flex-shrink:0;padding:20px 24px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:0;}
+.section-right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+@media(max-width:800px){
+  .section-card{flex-direction:column;}
+  .section-left{width:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .section-right{min-height:240px;}
+}
+
+/* JWT decoded panel scrolls within the fixed card height */
+#section-jwt .section-right{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;}
+#jwt-output{display:flex;flex-direction:column;max-height:none;overflow-y:auto;}
+#jwt-output .item{flex:1;display:flex;flex-direction:column;}
+.jwt-decoded{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border:1px solid var(--border);margin-top:4px;color:var(--text-secondary);display:none;white-space:pre-wrap;word-break:break-all;overflow-y:auto;}
+.jwt-decoded.open{display:block;flex:1;}
+.seg-ctrl{display:flex;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;margin-bottom:14px;}
+.seg-btn{flex:1;padding:5px 6px;font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.seg-btn.active{background:var(--bg-card);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.seg-btn:hover:not(.active){color:var(--text-secondary);}
+
+/* CARD INTERNALS */
+.card-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.ci-blue{background:var(--blue-dim);color:var(--blue);}
+.ci-purple{background:var(--purple-dim);color:var(--purple);}
+.ci-green{background:var(--green-dim);color:var(--green);}
+.ci-cyan{background:var(--cyan-dim);color:var(--cyan);}
+.ci-orange{background:var(--orange-dim);color:var(--orange);}
+.ci-rose{background:var(--rose-dim);color:var(--rose);}
+.ci-red{background:var(--red-dim);color:var(--red);}
+.card-title{font-size:15px;font-weight:600;}
+
+/* FORM CONTROLS */
+.field{margin-bottom:14px;}
+.field label{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:6px;}
+.field label .val{font-weight:600;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:12px;}
+.field input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;}
+.check-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-secondary);cursor:pointer;user-select:none;}
+.check-row:last-of-type{border-bottom:none;}
+.check-row input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.check-row:hover{color:var(--text-primary);}
+.checks-block{margin-bottom:16px;}
+.inline-input{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;padding:4px 8px;outline:none;transition:border-color .15s;}
+.inline-input:focus{border-color:var(--blue);}
+.inline-select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 8px;cursor:pointer;outline:none;}
+.field-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--text-secondary);}
+.field-row label{flex-shrink:0;}
+.claims-area{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px;outline:none;resize:vertical;min-height:60px;transition:border-color .15s;}
+.claims-area:focus{border-color:var(--blue);}
+.notice{font-size:11px;color:var(--text-muted);line-height:1.5;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border-left:3px solid var(--orange);margin-top:10px;}
+
+/* BUTTONS */
+.btn-primary{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;display:inline-flex;align-items:center;gap:7px;width:100%;justify-content:center;text-shadow:1px 1px 0 rgba(0,0,0,0.2),-1px -1px 0 rgba(0,0,0,0.2),1px -1px 0 rgba(0,0,0,0.2),-1px 1px 0 rgba(0,0,0,0.2),0 1px 0 rgba(0,0,0,0.2),0 -1px 0 rgba(0,0,0,0.2),1px 0 0 rgba(0,0,0,0.2),-1px 0 0 rgba(0,0,0,0.2);}.btn-primary .bolt{text-shadow:1px 1px 0 rgba(0,0,0,0.35),-1px -1px 0 rgba(0,0,0,0.35),1px -1px 0 rgba(0,0,0,0.35),-1px 1px 0 rgba(0,0,0,0.35),0 1px 0 rgba(0,0,0,0.35),0 -1px 0 rgba(0,0,0,0.35),1px 0 0 rgba(0,0,0,0.35),-1px 0 0 rgba(0,0,0,0.35);}.btn-primary.cyan .bolt{text-shadow:1px 1px 0 rgba(0,0,0,0.45),-1px -1px 0 rgba(0,0,0,0.45),1px -1px 0 rgba(0,0,0,0.45),-1px 1px 0 rgba(0,0,0,0.45),0 1px 0 rgba(0,0,0,0.45),0 -1px 0 rgba(0,0,0,0.45),1px 0 0 rgba(0,0,0,0.45),-1px 0 0 rgba(0,0,0,0.45);}
+.btn-primary:hover{background:var(--blue-hover);}
+
+.btn-primary.green{background:var(--green);}
+.btn-primary.green:hover{background:#16a34a;}
+.btn-primary.purple{background:var(--purple);}
+.btn-primary.purple:hover{background:#8b6ef0;}
+.btn-primary.cyan{background:var(--cyan);color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,0.2),-1px -1px 0 rgba(0,0,0,0.2),1px -1px 0 rgba(0,0,0,0.2),-1px 1px 0 rgba(0,0,0,0.2),0 1px 0 rgba(0,0,0,0.2),0 -1px 0 rgba(0,0,0,0.2),1px 0 0 rgba(0,0,0,0.2),-1px 0 0 rgba(0,0,0,0.2);}
+.btn-primary.cyan:hover{background:#0e7490;}
+
+.btn-primary.orange{background:var(--orange);}
+.btn-primary.orange:hover{background:#d97706;}
+.btn-primary.rose{background:var(--rose);}
+.btn-primary.rose:hover{background:var(--rose-hover);}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.btn-ghost:hover{color:var(--text-primary);border-color:var(--border-light);}
+
+/* OUTPUT */
+.output-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.output-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);}
+.output-actions{display:flex;gap:6px;align-items:center;}
+.output-count{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;}
+.output-body{padding:8px;overflow-y:auto;overflow-x:visible;flex:1;min-height:0;max-height:60vh;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px;align-content:start;}
+/* JWT output uses flex column so decoded panel can expand to fill height */
+#jwt-output{display:flex;flex-direction:column;grid-template-columns:none;max-height:none;}
+.output-body.wide{grid-template-columns:1fr;}
+.output-empty{display:flex;align-items:center;justify-content:center;min-height:160px;padding:20px;}
+.watermark{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;opacity:0.07;user-select:none;pointer-events:none;text-align:center;}
+
+/* ITEMS */
+.item{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;padding:6px 8px;border-radius:6px;transition:background .1s;}
+.item:hover{background:var(--bg-card2);}
+.item-text{font-family:'JetBrains Mono',monospace;font-size:12px;flex:1;word-break:break-word;overflow-wrap:anywhere;line-height:1.5;}
+.item-text.blue{color:var(--blue);}
+.item-text.purple{color:var(--purple);}
+.item-text.green{color:var(--green);}
+.item-text.cyan{color:var(--cyan);}
+.item-text.orange{color:var(--orange);}
+.item-text.rose{color:var(--rose);}
+.copy-btn{cursor:pointer;opacity:0.45;transition:opacity .2s;flex-shrink:0;font-size:13px;padding:2px 4px;border-radius:4px;margin-top:1px;}
+.copy-btn:hover{opacity:1;background:var(--bg-card2);}
+
+/* JWT DECODED VIEW */
+.jwt-decoded{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border:1px solid var(--border);margin-top:4px;color:var(--text-secondary);display:none;white-space:pre-wrap;word-break:break-all;flex:1;overflow-y:auto;}
+.jwt-decoded.open{display:flex;flex-direction:column;}
+.jwt-toggle{font-size:10px;color:var(--text-muted);cursor:pointer;padding:2px 5px;border-radius:3px;transition:color .1s;user-select:none;}
+.jwt-toggle:hover{color:var(--text-secondary);}
+/* JWT item fills the output body vertically */
+#jwt-output{display:flex;flex-direction:column;}
+#jwt-output .item{flex:1;display:flex;flex-direction:column;}
+
+/* BASE64 TEXTAREA */
+.b64-input{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px;outline:none;resize:vertical;min-height:80px;transition:border-color .15s;}
+.b64-input:focus{border-color:var(--blue);}
+
+/* ENTROPY TOOLTIP */
+.entropy-floor-val{font-weight:700;transition:color .2s;}
+.entropy-floor-val.zero{color:var(--text-muted);}
+.entropy-floor-val.weak{color:#ef4444;}
+.entropy-floor-val.moderate{color:#f59e0b;}
+.entropy-floor-val.strong{color:#22c55e;}
+.entropy-floor-val.vstrong{color:#06b6d4;}
+.entropy-floor-strength{font-size:11px;font-weight:600;transition:color .2s;}
+.entropy-floor-strength.weak{color:#ef4444;}
+.entropy-floor-strength.moderate{color:#f59e0b;}
+.entropy-floor-strength.strong{color:#22c55e;}
+.entropy-floor-strength.vstrong{color:#06b6d4;}
+.entropy-info-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:13px;padding:0 2px;line-height:1;transition:color .15s;flex-shrink:0;}
+.entropy-info-btn:hover{color:var(--blue);}
+.entropy-topbar-link{font-size:12px;opacity:0.7;}
+.entropy-topbar-link:hover{opacity:1;color:var(--blue);}
+.entropy-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:480px;max-width:calc(100vw - 32px);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.entropy-modal-body{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.6;color:var(--text-secondary);}
+.entropy-modal-body h3{font-size:13px;font-weight:700;color:var(--text-primary);margin:0 0 2px;}
+.entropy-modal-body p{margin:0;}
+.em-section{display:flex;flex-direction:column;gap:4px;}
+.em-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;margin-bottom:4px;width:fit-content;}
+.em-tag.theoretical{background:var(--bg-card2);color:var(--text-muted);}
+.em-tag.effective{background:var(--blue-dim);color:var(--blue);}
+.em-divider{border:none;border-top:1px solid var(--border);margin:0;}
+.entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:10px 14px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:200px;transform:translateX(-50%);}
+.entropy-tip.visible{display:block;}
+.tip-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.tip-row{display:flex;align-items:baseline;justify-content:space-between;gap:24px;}
+.tip-bits-effective{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;}
+.tip-strength{font-size:12px;font-weight:600;}
+.tip-bits-theoretical{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);margin-bottom:8px;}
+.tip-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:5px 0 6px;}
+.tip-bar{height:100%;border-radius:2px;transition:width .2s;}
+.tip-divider{border:none;border-top:1px solid var(--border);margin:8px 0 6px;}
+.tip-footer{font-size:9px;color:var(--text-muted);line-height:1.4;max-width:200px;white-space:normal;margin-top:6px;}
+.tip-arrow{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--border-light);}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;color:var(--text-primary);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:540px;max-width:calc(100vw - 32px);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;transition:color .15s;}
+.modal-close:hover{color:var(--text-primary);}
+.modal-body{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.modal-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:10px;}
+.modal-cat-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.modal-cat-label:first-child{margin-top:0;}
+.gen-toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.gen-toggle{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);user-select:none;transition:all .15s;background:var(--bg-card2);}
+.gen-toggle:hover{color:var(--text-primary);border-color:var(--border-light);}
+.gen-toggle.active{border-color:var(--blue);background:var(--blue-dim);color:var(--text-primary);}
+.gen-toggle.active.clr-purple{border-color:var(--purple);background:var(--purple-dim);}
+.gen-toggle.active.clr-green{border-color:var(--green);background:var(--green-dim);}
+.gen-toggle.active.clr-cyan{border-color:var(--cyan);background:var(--cyan-dim);}
+.gen-toggle.active.clr-orange{border-color:var(--orange);background:var(--orange-dim);}
+.gen-toggle input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;flex-shrink:0;}
+.gen-toggle-icon{font-size:15px;}
+.gen-toggle-info{display:flex;flex-direction:column;gap:1px;}
+.gen-toggle-label{font-size:13px;font-weight:500;}
+.gen-toggle-desc{font-size:11px;color:var(--text-muted);}
+.wl-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.wl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card2);border:1px solid var(--border);border-radius:8px;font-size:13px;}
+.wl-item-name{flex:1;font-weight:500;}
+.wl-item-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);}
+.wl-item-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.wl-item-badge.builtin{background:var(--bg-card);color:var(--text-muted);border-color:var(--border);}
+.wl-remove{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px 4px;border-radius:3px;transition:color .15s;flex-shrink:0;}
+.wl-remove:hover{color:#ef4444;}
+.wl-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:1px 2px;outline:none;transition:border-color .15s;min-width:0;}
+.wl-name-input:hover{border-bottom-color:var(--border-light);}
+.wl-name-input:focus{border-bottom-color:var(--blue);}
+.wl-add-row{display:flex;gap:8px;align-items:center;}
+.wl-select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 8px;cursor:pointer;outline:none;transition:border-color .15s;}
+.wl-select:focus{border-color:var(--purple);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title"><span>🔑</span> Reliquary</div>
+  <div class="topbar-actions">
+    <button class="btn-ghost entropy-topbar-link" onclick="openEntropyInfo()">ⓘ What is entropy?</button>
+    <button class="btn-ghost" onclick="openSettings()" id="settingsBtn">⚙ Settings</button>
+    <button class="btn-ghost" onclick="toggleTheme()" id="themeBtn">☀ Light</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">⚙ Settings</span>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="modal-section-title">Active Generators</div>
+
+        <div class="modal-cat-label">General</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle active" id="tog-password">
+            <input type="checkbox" checked onchange="toggleGenerator('password',this.checked)">
+            <span class="gen-toggle-icon">🔒</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Password</span><span class="gen-toggle-desc">Character strings</span></div>
+          </label>
+          <label class="gen-toggle active clr-purple" id="tog-passphrase">
+            <input type="checkbox" checked onchange="toggleGenerator('passphrase',this.checked)">
+            <span class="gen-toggle-icon">📝</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Passphrase</span><span class="gen-toggle-desc">Word-based phrases</span></div>
+          </label>
+          <label class="gen-toggle clr-green" id="tog-pin">
+            <input type="checkbox" onchange="toggleGenerator('pin',this.checked)">
+            <span class="gen-toggle-icon">🔢</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">PIN</span><span class="gen-toggle-desc">Numeric codes</span></div>
+          </label>
+          <label class="gen-toggle clr-purple" id="tog-username">
+            <input type="checkbox" onchange="toggleGenerator('username',this.checked)">
+            <span class="gen-toggle-icon">👤</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Username</span><span class="gen-toggle-desc">word + number handles</span></div>
+          </label>
+        </div>
+
+        <div class="modal-cat-label">Security</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle clr-orange" id="tog-apikey">
+            <input type="checkbox" onchange="toggleGenerator('apikey',this.checked)">
+            <span class="gen-toggle-icon">🔑</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">API Key</span><span class="gen-toggle-desc">Hex / base62 tokens</span></div>
+          </label>
+          <label class="gen-toggle clr-orange" id="tog-recovery">
+            <input type="checkbox" onchange="toggleGenerator('recovery',this.checked)">
+            <span class="gen-toggle-icon">🛡</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Recovery Codes</span><span class="gen-toggle-desc">Backup access codes</span></div>
+          </label>
+          <label class="gen-toggle clr-orange" id="tog-totp">
+            <input type="checkbox" onchange="toggleGenerator('totp',this.checked)">
+            <span class="gen-toggle-icon">⏱</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">TOTP Secrets</span><span class="gen-toggle-desc">Authenticator keys</span></div>
+          </label>
+        </div>
+
+        <div class="modal-cat-label">Developer</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle clr-cyan" id="tog-uuid">
+            <input type="checkbox" onchange="toggleGenerator('uuid',this.checked)">
+            <span class="gen-toggle-icon">🔵</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">UUID v4</span><span class="gen-toggle-desc">Random identifiers</span></div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-jwt">
+            <input type="checkbox" onchange="toggleGenerator('jwt',this.checked)">
+            <span class="gen-toggle-icon">🪙</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">JWT</span><span class="gen-toggle-desc">Signed tokens</span></div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-webhook">
+            <input type="checkbox" onchange="toggleGenerator('webhook',this.checked)">
+            <span class="gen-toggle-icon">🔗</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Webhook Secrets</span><span class="gen-toggle-desc">HMAC signing keys</span></div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-base64">
+            <input type="checkbox" onchange="toggleGenerator('base64',this.checked)">
+            <span class="gen-toggle-icon">📦</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Base64 Encoder</span><span class="gen-toggle-desc">Encode / generate</span></div>
+          </label>
+        </div>
+
+        <div class="modal-cat-label">Crypto</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle clr-orange" id="tog-bip39">
+            <input type="checkbox" onchange="toggleGenerator('bip39',this.checked)">
+            <span class="gen-toggle-icon">🌱</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">BIP-39 Mnemonics</span><span class="gen-toggle-desc">Seed phrases</span></div>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Word Lists</div>
+        <div class="wl-tab-bar">
+          <button class="wl-tab-btn active" id="wl-tab-standard-btn" onclick="switchWlTab('standard')">Standard</button>
+          <button class="wl-tab-btn" id="wl-tab-novelty-btn" onclick="switchWlTab('novelty')">Novelty</button>
+        </div>
+
+        <!-- STANDARD TAB -->
+        <div class="wl-tab-panel active" id="wl-tab-standard">
+          <div class="wl-list" id="wl-list"></div>
+          <div class="wl-add-row">
+            <button class="btn-ghost" onclick="document.getElementById('wl-file-input').click()">+ Add list from .txt file</button>
+            <input type="file" id="wl-file-input" accept=".txt" style="display:none" onchange="loadWordListFile(this)">
+            <span id="wl-load-status" style="font-size:12px;color:var(--text-muted);"></span>
+          </div>
+        </div>
+
+        <!-- NOVELTY TAB -->
+        <div class="wl-tab-panel" id="wl-tab-novelty">
+          <div class="wl-novelty-enable" style="margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="novelty-enabled" onchange="toggleNoveltyEnabled(this.checked)" style="accent-color:var(--purple);width:14px;height:14px;">
+              Enable novelty word lists
+            </label>
+          </div>
+          <div id="novelty-manager" style="display:none;">
+            <div class="wl-list" id="wl-novelty-list"></div>
+            <div class="wl-add-row">
+              <button class="btn-ghost" onclick="document.getElementById('wl-novelty-file-input').click()">+ Add list from .txt file</button>
+              <input type="file" id="wl-novelty-file-input" accept=".txt" style="display:none" onchange="loadNoveltyListFile(this)">
+              <span id="wl-novelty-load-status" style="font-size:12px;color:var(--text-muted);"></span>
+            </div>
+          </div>
+          <div id="novelty-disabled-msg" style="font-size:12px;color:var(--text-muted);padding:8px 0;">
+            Enable novelty word lists to add themed lists for use in passphrase generation.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="tabs-nav" id="tabsNav"></div>
+
+  <!-- ══════════════════ GENERAL TAB ══════════════════ -->
+  <div class="tab-page active" id="tab-general">
+
+    <!-- PASSWORD -->
+    <div class="section-card" id="section-password">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-blue">🔒</div>
+          <div class="card-title">Passwords</div>
+        </div>
+        <div class="seg-ctrl" id="pw-mode-ctrl">
+          <button class="seg-btn active" onclick="setPwMode('random')">Random</button>
+          <button class="seg-btn" onclick="setPwMode('memorable')">Memorable</button>
+          <button class="seg-btn" onclick="setPwMode('pronounceable')">Pronounce</button>
+        </div>
+        <!-- Random mode panel -->
+        <div id="pw-panel-random">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="pw-upper" checked> Uppercase (A–Z)</label>
+            <label class="check-row"><input type="checkbox" id="pw-lower" checked> Lowercase (a–z)</label>
+            <label class="check-row"><input type="checkbox" id="pw-nums" checked> Numbers (0–9)</label>
+            <label class="check-row"><input type="checkbox" id="pw-special" checked> Special characters</label>
+            <label class="check-row"><input type="checkbox" id="pw-noambig"> Exclude ambiguous (0,O,l,1)</label>
+          </div>
+          <div class="field">
+            <label>Length <span class="val" id="pw-len-val">26</span></label>
+            <input type="range" id="pw-length" min="4" max="128" value="26"
+              oninput="document.getElementById('pw-len-val').textContent=this.value; _pwLengthUserPref=parseInt(this.value);">
+          </div>
+        </div>
+        <!-- Memorable mode panel -->
+        <div id="pw-panel-memorable" style="display:none">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="mem-caps" checked> Capitalize base word</label>
+            <label class="check-row"><input type="checkbox" id="mem-nums" checked> Add numbers</label>
+            <label class="check-row"><input type="checkbox" id="mem-special" checked> Add special chars</label>
+          </div>
+          <div class="field">
+            <label>Padding length <span class="val" id="mem-pad-val">4</span></label>
+            <input type="range" id="mem-pad" min="2" max="8" value="4" oninput="document.getElementById('mem-pad-val').textContent=this.value">
+          </div>
+        </div>
+        <!-- Pronounceable mode panel -->
+        <div id="pw-panel-pronounceable" style="display:none">
+          <div class="checks-block">
+            <label class="check-row"><input type="checkbox" id="pro-caps" checked> Random capitalization</label>
+            <label class="check-row"><input type="checkbox" id="pro-nums" checked> Append numbers</label>
+          </div>
+          <div class="field">
+            <label>Syllables <span class="val" id="pro-syl-val">4</span></label>
+            <input type="range" id="pro-syl" min="2" max="8" value="4" oninput="document.getElementById('pro-syl-val').textContent=this.value">
+          </div>
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="pw-qty-val">15</span></label>
+          <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:6px;">Min entropy <span class="val entropy-floor-val zero" id="pw-floor-val">none</span><button class="entropy-info-btn" onclick="openEntropyInfo()" title="About entropy">ⓘ</button></label>
+          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val','pw-floor-strength'); syncLengthToFloor();">
+          <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pw-floor-strength"></span></div>
+        </div>
+        <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label" id="pw-output-label">Passwords</span>
+          <div class="output-actions">
+            <span class="output-count" id="pw-count"></span>
+            <button class="btn-ghost" id="pw-copy-all" onclick="copyAll('pw')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body" id="pw-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--blue);font-size:28px;">passwords</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSPHRASE -->
+    <div class="section-card" id="section-passphrase">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-purple">📝</div>
+          <div class="card-title">Passphrases</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
+          <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
+          <label class="check-row" style="gap:10px;flex-wrap:wrap;">
+            <span style="flex-shrink:0;">Separator</span>
+            <input type="text" id="pp-sep" value="-" maxlength="5" class="inline-input" style="width:52px;text-align:center;transition:opacity .15s;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;margin-left:auto;">
+              <input type="checkbox" id="pp-sep-random" style="accent-color:var(--purple);width:13px;height:13px;cursor:pointer;" onchange="toggleRandomSep(this.checked)">
+              random
+            </label>
+          </label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Words per phrase <span class="val" id="pp-words-val">4</span></label>
+          <input type="range" id="pp-words" min="2" max="9" value="4"
+            oninput="document.getElementById('pp-words-val').textContent=this.value; _ppWordsUserPref=parseInt(this.value);">
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="pp-qty-val">15</span></label>
+          <input type="range" id="pp-qty" min="1" max="45" value="15" oninput="document.getElementById('pp-qty-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+            <label>Word list</label>
+            <label id="novelty-toggle-label" style="display:none;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="pp-novelty-mode" onchange="toggleNoveltyMode(this.checked)" style="accent-color:var(--purple);width:12px;height:12px;">
+              Novelty
+            </label>
+          </div>
+          <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:6px;">Min entropy <span class="val entropy-floor-val zero" id="pp-floor-val">none</span><button class="entropy-info-btn" onclick="openEntropyInfo()" title="About entropy">ⓘ</button></label>
+          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val','pp-floor-strength'); syncWordsToFloor();">
+          <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pp-floor-strength"></span></div>
+        </div>
+        <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">Passphrases</span>
+          <div class="output-actions">
+            <span class="output-count" id="pp-count"></span>
+            <button class="btn-ghost" id="pp-copy-all" onclick="copyAll('pp')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body" id="pp-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--purple);font-size:28px;">passphrases</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIN -->
+    <div class="section-card" id="section-pin" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-green">🔢</div>
+          <div class="card-title">PINs</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="pin-spaces"> Group digits with spaces</label>
+          <label class="check-row"><input type="checkbox" id="pin-noseq"> No sequential runs (1234)</label>
+          <label class="check-row"><input type="checkbox" id="pin-norep"> No repeating digits (1111)</label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Digits <span class="val" id="pin-len-val">6</span></label>
+          <input type="range" id="pin-length" min="4" max="12" value="6" oninput="document.getElementById('pin-len-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="pin-qty-val">15</span></label>
+          <input type="range" id="pin-qty" min="1" max="45" value="15" oninput="document.getElementById('pin-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary green" onclick="generatePIN()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">PINs</span>
+          <div class="output-actions">
+            <span class="output-count" id="pin-count"></span>
+            <button class="btn-ghost" id="pin-copy-all" onclick="copyAll('pin')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body" id="pin-output" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">
+          <div class="output-empty"><span class="watermark" style="color:var(--green);font-size:28px;">pins</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERNAME -->
+    <div class="section-card" id="section-username" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-purple">👤</div>
+          <div class="card-title">Usernames</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="un-nums" checked> Append numbers</label>
+          <label class="check-row"><input type="checkbox" id="un-sep"> Use separator</label>
+        </div>
+        <div class="field-row" style="margin-top:4px;">
+          <label style="font-size:13px;color:var(--text-secondary);">Separator</label>
+          <input type="text" id="un-sep-char" value="_" maxlength="1" class="inline-input" style="width:44px;text-align:center;margin-left:8px;">
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>Pattern</label>
+          <select class="inline-select" id="un-pattern" style="width:100%;margin-top:4px;">
+            <option value="adj-noun">Adjective + Noun</option>
+            <option value="noun-num">Noun + Number</option>
+            <option value="adj-noun-num" selected>Adjective + Noun + Number</option>
+            <option value="word-word">Word + Word</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="un-qty-val">15</span></label>
+          <input type="range" id="un-qty" min="1" max="45" value="15" oninput="document.getElementById('un-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary purple" onclick="generateUsername()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">Usernames</span>
+          <div class="output-actions">
+            <span class="output-count" id="un-count"></span>
+            <button class="btn-ghost" id="un-copy-all" onclick="copyAll('un')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body" id="un-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--purple);font-size:28px;">usernames</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-general -->
+
+  <!-- ══════════════════ SECURITY TAB ══════════════════ -->
+  <div class="tab-page" id="tab-security">
+
+    <!-- API KEY -->
+    <div class="section-card" id="section-apikey" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-rose">🔑</div>
+          <div class="card-title">API Keys</div>
+        </div>
+        <div class="field">
+          <label>Format</label>
+          <select class="inline-select" id="ak-format" style="width:100%;margin-top:4px;">
+            <option value="hex">Raw hex</option>
+            <option value="base62" selected>Base62</option>
+            <option value="sk">sk- prefix (OpenAI-style)</option>
+            <option value="whsec">whsec_ prefix (Stripe-style)</option>
+            <option value="bearer">Bearer token</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Length (chars) <span class="val" id="ak-len-val">32</span></label>
+          <input type="range" id="ak-length" min="16" max="64" value="32" oninput="document.getElementById('ak-len-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="ak-qty-val">10</span></label>
+          <input type="range" id="ak-qty" min="1" max="45" value="10" oninput="document.getElementById('ak-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary rose" onclick="generateApiKey()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">API Keys</span>
+          <div class="output-actions">
+            <span class="output-count" id="ak-count"></span>
+            <button class="btn-ghost" id="ak-copy-all" onclick="copyAll('ak')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="ak-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">api keys</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOVERY CODES -->
+    <div class="section-card" id="section-recovery" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-orange">🛡</div>
+          <div class="card-title">Recovery Codes</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="rc-hyphen" checked> Hyphen separator (A3F2-9K1M)</label>
+          <label class="check-row"><input type="checkbox" id="rc-upper" checked> Uppercase</label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Chunks <span class="val" id="rc-chunks-val">2</span></label>
+          <input type="range" id="rc-chunks" min="2" max="4" value="2" oninput="document.getElementById('rc-chunks-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label>Chars per chunk <span class="val" id="rc-size-val">4</span></label>
+          <input type="range" id="rc-size" min="4" max="8" value="4" oninput="document.getElementById('rc-size-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="rc-qty-val">10</span></label>
+          <input type="range" id="rc-qty" min="1" max="20" value="10" oninput="document.getElementById('rc-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary rose" onclick="generateRecoveryCodes()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">Recovery Codes</span>
+          <div class="output-actions">
+            <span class="output-count" id="rc-count"></span>
+            <button class="btn-ghost" id="rc-copy-all" onclick="copyAll('rc')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body" id="rc-output" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));">
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">recovery codes</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOTP SECRET -->
+    <div class="section-card" id="section-totp" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-orange">⏱</div>
+          <div class="card-title">TOTP Secrets</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="totp-spaces" checked> Group with spaces (for readability)</label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Key length</label>
+          <select class="inline-select" id="totp-len" style="width:100%;margin-top:4px;">
+            <option value="20" selected>160-bit (20 bytes) — standard</option>
+            <option value="32">256-bit (32 bytes)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="totp-qty-val">5</span></label>
+          <input type="range" id="totp-qty" min="1" max="20" value="5" oninput="document.getElementById('totp-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary rose" onclick="generateTOTP()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">TOTP Secretss</span>
+          <div class="output-actions">
+            <span class="output-count" id="totp-count"></span>
+            <button class="btn-ghost" id="totp-copy-all" onclick="copyAll('totp')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="totp-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">totp secrets</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-security -->
+
+  <!-- ══════════════════ DEVELOPER TAB ══════════════════ -->
+  <div class="tab-page" id="tab-developer">
+
+    <!-- UUID -->
+    <div class="section-card" id="section-uuid" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">🔵</div>
+          <div class="card-title">UUIDs</div>
+        </div>
+        <div class="checks-block">
+          <label class="check-row"><input type="checkbox" id="uuid-upper"> Uppercase</label>
+          <label class="check-row"><input type="checkbox" id="uuid-nohyphen"> Strip hyphens</label>
+          <label class="check-row"><input type="checkbox" id="uuid-braces"> Wrap in braces {}</label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Quantity <span class="val" id="uuid-qty-val">10</span></label>
+          <input type="range" id="uuid-qty" min="1" max="45" value="10" oninput="document.getElementById('uuid-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary cyan" onclick="generateUUID()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">UUIDs</span>
+          <div class="output-actions">
+            <span class="output-count" id="uuid-count"></span>
+            <button class="btn-ghost" id="uuid-copy-all" onclick="copyAll('uuid')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="uuid-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">uuids</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JWT -->
+    <div class="section-card" id="section-jwt" style="display:none">
+      <div class="section-left" style="width:320px;">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">🪙</div>
+          <div class="card-title">JSON Web Tokens</div>
+        </div>
+        <div class="field">
+          <label>Algorithm</label>
+          <select class="inline-select" id="jwt-alg" style="width:100%;margin-top:4px;">
+            <option value="HS256" selected>HS256</option>
+            <option value="HS384">HS384</option>
+            <option value="HS512">HS512</option>
+          </select>
+        </div>
+        <div class="field">
+          <label style="margin-bottom:4px;">Secret <span style="font-size:11px;color:var(--text-muted);">(leave blank to auto-generate)</span></label>
+          <input type="text" id="jwt-secret" class="inline-input" style="width:100%;" placeholder="auto-generate">
+        </div>
+        <div class="field">
+          <label style="margin-bottom:4px;">Subject (sub)</label>
+          <input type="text" id="jwt-sub" class="inline-input" style="width:100%;" placeholder="user-id or leave blank">
+        </div>
+        <div class="field">
+          <label style="margin-bottom:4px;">Issuer (iss)</label>
+          <input type="text" id="jwt-iss" class="inline-input" style="width:100%;" placeholder="your-app or leave blank">
+        </div>
+        <div class="field">
+          <label>Expiry (hours from now) <span class="val" id="jwt-exp-val">1</span></label>
+          <input type="range" id="jwt-exp" min="0" max="720" value="1" oninput="document.getElementById('jwt-exp-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label style="margin-bottom:4px;">Extra claims (JSON)</label>
+          <textarea id="jwt-claims" class="claims-area" placeholder='{"role":"admin"}'></textarea>
+        </div>
+        <button class="btn-primary cyan" onclick="generateJWT()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">JWT</span>
+          <div class="output-actions">
+            <span class="output-count" id="jwt-count"></span>
+            <button class="btn-ghost" id="jwt-copy-all" onclick="copyAll('jwt')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="jwt-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">jwt</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEBHOOK SECRET -->
+    <div class="section-card" id="section-webhook" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">🔗</div>
+          <div class="card-title">Webhook Secrets</div>
+        </div>
+        <div class="field">
+          <label>Format</label>
+          <select class="inline-select" id="wh-format" style="width:100%;margin-top:4px;">
+            <option value="raw">Raw hex</option>
+            <option value="base62">Base62</option>
+            <option value="whsec" selected>whsec_ (Stripe-style)</option>
+            <option value="whpk">whpk_ (generic)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Length (chars) <span class="val" id="wh-len-val">32</span></label>
+          <input type="range" id="wh-length" min="16" max="64" value="32" oninput="document.getElementById('wh-len-val').textContent=this.value">
+        </div>
+        <div class="field">
+          <label>Quantity <span class="val" id="wh-qty-val">5</span></label>
+          <input type="range" id="wh-qty" min="1" max="20" value="5" oninput="document.getElementById('wh-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary cyan" onclick="generateWebhook()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">Webhook Secretss</span>
+          <div class="output-actions">
+            <span class="output-count" id="wh-count"></span>
+            <button class="btn-ghost" id="wh-copy-all" onclick="copyAll('wh')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="wh-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">webhook secrets</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BASE64 -->
+    <div class="section-card" id="section-base64" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">📦</div>
+          <div class="card-title">Base64 Encoder</div>
+        </div>
+        <div class="seg-ctrl" id="b64-mode-ctrl">
+          <button class="seg-btn active" onclick="setB64Mode('encode')">Encode</button>
+          <button class="seg-btn" onclick="setB64Mode('generate')">Generate</button>
+        </div>
+        <div id="b64-panel-encode">
+          <div class="field">
+            <label style="margin-bottom:4px;">Input text</label>
+            <textarea id="b64-input" class="b64-input" placeholder="Type or paste text to encode…"></textarea>
+          </div>
+          <button class="btn-primary cyan" onclick="encodeBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
+        </div>
+        <div id="b64-panel-generate" style="display:none">
+          <div class="field">
+            <label>Random bytes <span class="val" id="b64-bytes-val">32</span></label>
+            <input type="range" id="b64-bytes" min="8" max="128" value="32" oninput="document.getElementById('b64-bytes-val').textContent=this.value">
+          </div>
+          <div class="field">
+            <label>Quantity <span class="val" id="b64-qty-val">10</span></label>
+            <input type="range" id="b64-qty" min="1" max="45" value="10" oninput="document.getElementById('b64-qty-val').textContent=this.value">
+          </div>
+          <button class="btn-primary cyan" onclick="generateBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
+        </div>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label" id="b64-output-label">Base64 Encoder Output</span>
+          <div class="output-actions">
+            <button class="btn-ghost" id="b64-copy-all" onclick="copyAll('b64')" style="display:none;">Copy</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="b64-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">base64</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-developer -->
+
+  <!-- ══════════════════ CRYPTO TAB ══════════════════ -->
+  <div class="tab-page" id="tab-crypto">
+
+    <!-- BIP-39 -->
+    <div class="section-card" id="section-bip39" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-orange">🌱</div>
+          <div class="card-title">BIP-39 Mnemonics</div>
+        </div>
+        <div class="field">
+          <label>Word count</label>
+          <select class="inline-select" id="bip-words" style="width:100%;margin-top:4px;">
+            <option value="12" selected>12 words (128-bit)</option>
+            <option value="15">15 words (160-bit)</option>
+            <option value="18">18 words (192-bit)</option>
+            <option value="21">21 words (224-bit)</option>
+            <option value="24">24 words (256-bit)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label style="margin-bottom:4px;">Optional passphrase <span style="font-size:11px;color:var(--text-muted);">(25th word)</span></label>
+          <input type="text" id="bip-passphrase" class="inline-input" style="width:100%;" placeholder="leave blank for standard">
+        </div>
+        <div class="checks-block" style="margin-top:8px;">
+          <label class="check-row"><input type="checkbox" id="bip-showseed"> Show derived seed hex</label>
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Quantity <span class="val" id="bip-qty-val">3</span></label>
+          <input type="range" id="bip-qty" min="1" max="10" value="3" oninput="document.getElementById('bip-qty-val').textContent=this.value">
+        </div>
+        <button class="btn-primary orange" onclick="generateBIP39()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+        <div class="notice" style="margin-top:12px;">Browser-generated mnemonics are suitable for testing only. Use air-gapped hardware for real funds.</div>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">Mnemonics</span>
+          <div class="output-actions">
+            <span class="output-count" id="bip-count"></span>
+            <button class="btn-ghost" id="bip-copy-all" onclick="copyAll('bip')" style="display:none;">Copy all</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="bip-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--orange);font-size:28px;">mnemonics</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-crypto -->
+
+</div><!-- /wrap -->
+
+<!-- ABOUT ENTROPY MODAL -->
+<div class="modal-overlay" id="entropyInfoOverlay" onclick="if(event.target===this)closeEntropyInfo()">
+  <div class="entropy-modal">
+    <div class="modal-hd">
+      <span class="modal-title">About Entropy</span>
+      <button class="modal-close" onclick="closeEntropyInfo()">✕</button>
+    </div>
+    <div class="entropy-modal-body">
+      <p>Entropy measures how hard a password is to guess — expressed in bits, where each additional bit doubles the number of combinations an attacker must try. Higher bits mean a larger search space.</p>
+
+      <hr class="em-divider">
+
+      <div class="em-section">
+        <span class="em-tag theoretical">Theoretical entropy</span>
+        <h3>What a generic attacker faces</h3>
+        <p>Calculated by treating every character as if it could be anything from the full character set used — uppercase, lowercase, digits, symbols. A generic brute-force tool makes no assumptions about how your password was built, so it must search the entire character space. This is the upper bound on difficulty.</p>
+      </div>
+
+      <div class="em-section">
+        <span class="em-tag effective">Effective entropy</span>
+        <h3>What an informed attacker faces</h3>
+        <p>Accounts for how the password was actually constructed. A pronounceable password uses consonant-vowel patterns that shrink the real search space — even if the characters look random. A passphrase draws from a known word list. An attacker who knows the generation method works against effective entropy, not theoretical.</p>
+      </div>
+
+      <hr class="em-divider">
+
+      <div class="em-section">
+        <h3>Which should I trust?</h3>
+        <p>Theoretical entropy is a useful upper-bound reference — it shows how hard the password would be to crack if the attacker had no knowledge of how it was generated. Effective entropy is the practical, conservative estimate used by this tool, because it reflects the actual space the generator worked from.</p>
+        <p style="margin-top:8px;">When in doubt, trust <strong style="color:var(--blue);">effective entropy</strong>. Strength ratings and minimum-strength thresholds in this tool are always based on effective entropy — the honest, conservative measure.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="entropy-tip" id="entropyTip">
+  <div class="tip-section-label" id="tip-effective-label">Effective Entropy</div>
+  <div class="tip-row">
+    <span class="tip-bits-effective" id="tip-effective"></span>
+    <span class="tip-strength" id="tip-strength"></span>
+  </div>
+  <div class="tip-bar-wrap"><div class="tip-bar" id="tip-bar"></div></div>
+  <div id="tip-theoretical-section">
+    <hr class="tip-divider">
+    <div class="tip-section-label" style="color:var(--text-muted);">Theoretical Entropy</div>
+    <div class="tip-bits-theoretical" id="tip-theoretical"></div>
+    <div class="tip-footer">Effective entropy is used for strength ratings and minimum-strength thresholds.</div>
+  </div>
+  <div class="tip-arrow"></div>
+</div>
+<script>
+// ── CRYPTO RNG ────────────────────────────────────────────────────────────────
+// Rejection sampling eliminates modulo bias: values that would over-represent
+// lower outputs are discarded and redrawn. Rejection probability < 0.0001%
+// for all pool sizes used in this tool — typically resolves in one draw.
+function randInt(max) {
+  const limit = Math.floor(0x100000000 / max) * max;
+  const arr   = new Uint32Array(1);
+  do { crypto.getRandomValues(arr); } while (arr[0] >= limit);
+  return arr[0] % max;
+}
+function randBytes(n) {
+  const arr = new Uint8Array(n);
+  crypto.getRandomValues(arr);
+  return arr;
+}
+
+// ── WORD LIST ─────────────────────────────────────────────────────────────────
+const WORD_LIST = ["absolute","abyssal","agile","alpine","amber","amulet","anchor","ancient","anvil","arctic","ardent","arid","arrow","astute","atlas","aurora","austere","avalanche","axle","azure","banner","barrel","barren","basalt","basin","bastion","beacon","beckon","birch","blade","blaze","blazing","blizzard","bloom","bold","bonfire","boulder","boulderfield","brackish","breeze","bridge","brine","brisk","buckle","bullion","burnished","cadence","cairn","calm","candid","canopy","canyon","capable","careful","carve","carved","cascade","cavern","cedar","chalice","channel","chisel","chromatic","chronicle","cinder","circuit","cirrus","citadel","civil","clarity","cleave","clever","cliff","cloak","cloister","cloud","coastal","cobalt","cobble","cobblestone","column","compass","complex","composed","concise","conduit","copper","coral","corona","corsair","craft","crater","creek","crescent","crest","crevice","crimson","crisp","crown","cryptic","crystal","curious","current","cypress","dagger","datum","decay","decipher","decisive","decode","defend","deliver","delta","dense","deploy","depot","design","detect","devote","devoted","discover","dispatch","distill","distinct","domain","dormant","draft","drape","drawbridge","dune","durable","dusk","dyke","earnest","edgewise","effigy","elegant","ember","emblem","emerge","empire","enclave","encode","endure","enduring","enforce","engine","engrave","epoch","equinox","exact","explore","extend","faction","falcon","fathom","ferrite","fierce","filter","finite","fjord","flare","flint","flotsam","fluent","flume","focused","fog","folio","forest","forge","fortify","fortress","fossil","foundry","fracture","fragile","frontier","frost","frostbite","frugal","fulcrum","gale","gallant","gallery","garnet","gateway","gather","gauntlet","generate","gentle","genuine","gilded","glacier","glen","glimmer","glyph","govern","graceful","granite","gravel","grotto","grounded","grove","guide","gulf","gust","hallmark","harbor","harvest","hatchet","haven","heath","herald","highland","hinge","hollow","honest","horizon","humble","hurricane","ignite","immense","ingot","inlet","invoke","inward","ironclad","ironwood","island","ivory","jackal","jagged","javelin","jetty","jungle","keen","kelp","keystone","kindle","kindling","kindred","kinetic","knoll","lagoon","lantern","lattice","launch","lava","lavender","ledge","levy","lightning","limestone","lintel","loch","locket","lodestar","lofty","lookout","loom","lucid","luminous","lunar","luster","magma","mantle","marble","marker","marsh","massive","mast","matrix","mausoleum","mayday","meadow","measured","mesa","meteor","midnight","mist","moat","modest","molten","momentum","monsoon","mortar","mosaic","mossy","mountain","murmur","muted","napkin","nave","navigate","nebula","nexus","nimble","noble","nocturnal","northward","obelisk","oblique","obsidian","ocean","offset","onyx","opal","open","orbit","orderly","outcrop","outpost","overhang","overture","oyster","parapet","passage","patent","pathfinder","patient","patrol","pebble","pelican","pendant","pennant","perch","persist","petal","pillar","pinnacle","pioneer","pivot","placid","plank","plateau","plume","polished","pollen","portal","prairie","precise","prism","pristine","prolific","prompt","protect","pursue","pylon","quarry","quartz","radiant","ramble","rampart","rapid","ratchet","rational","raven","ravine","reef","refine","relic","remnant","render","resilient","resolve","restful","restore","reveal","ridge","ridgeline","ripple","river","robin","robust","rocky","rogue","rubble","ruby","rugged","rune","rustic","sage","sandstone","sapphire","satchel","savanna","scaffold","scarlet","scroll","sculpt","scythe","seabird","seacliff","secure","sentinel","seraph","serene","shadow","shale","shard","sharp","sharpen","shield","shimmer","shore","sierra","signal","silent","silica","silver","sincere","sketch","slate","sleek","snowmelt","socket","solemn","solitude","solstice","solve","solvent","sparse","spearhead","spire","splint","spruce","squadron","standard","staple","steady","stellar","stoic","stone","storm","stratum","strobe","sturdy","subtle","summit","summon","sundew","sundial","sundown","supple","surplus","sustain","swift","symbol","tablet","talon","temper","tempest","tether","thorn","threshold","thunder","thunderhead","tidal","tiered","timber","tinder","token","topaz","torch","torrent","totem","tower","trail","tranquil","traverse","trident","trophy","true","tundra","turbulent","turret","twilight","unlock","upright","utility","valiant","valley","vapor","vault","vector","venture","verdant","verdure","verify","vesper","vessel","vibrant","vigilant","visage","vivid","volatile","volcanic","vortex","walkway","wander","warden","warrant","watchful","weathered","wedge","whetstone","wholesome","wield","willow","witness","woven","zealous","zenith","zephyr"];
+
+window._customLists = [];
+
+// ── ENTROPY FLOOR ─────────────────────────────────────────────────────────────
+function entropyClass(bits) {
+  if (bits <= 0)  return 'zero';
+  if (bits < 50)  return 'weak';
+  if (bits < 80)  return 'moderate';
+  if (bits < 100) return 'strong';
+  return 'vstrong';
+}
+const ENTROPY_LABELS = { zero:'', weak:'Weak', moderate:'Moderate', strong:'Strong', vstrong:'Very strong' };
+function updateFloorLabel(sliderId, valId, strengthId) {
+  const bits   = parseInt(document.getElementById(sliderId).value);
+  const cls    = entropyClass(bits);
+  const valEl  = document.getElementById(valId);
+  valEl.textContent = bits === 0 ? 'none' : bits + ' bits';
+  valEl.className   = 'val entropy-floor-val ' + cls;
+  if (strengthId) {
+    const strEl = document.getElementById(strengthId);
+    if (strEl) { strEl.textContent = ENTROPY_LABELS[cls]; strEl.className = 'entropy-floor-strength ' + cls; }
+  }
+  saveSettings();
+}
+// ── ENTROPY CALCULATIONS ──────────────────────────────────────────────────────
+// Password: uses CONFIGURED pool size, not observed — correct from attacker's perspective.
+// poolSize is passed in from the generator where it's known exactly.
+function calcEntropyForPassword(pw, poolSize) {
+  if (!poolSize) {
+    // Fallback: infer from observed chars (tooltip on old results, etc.)
+    let pool = 0;
+    if (/[a-z]/.test(pw)) pool += 26;
+    if (/[A-Z]/.test(pw)) pool += 26;
+    if (/[0-9]/.test(pw)) pool += 10;
+    if (/[^a-zA-Z0-9]/.test(pw)) pool += 24; // corrected special pool size
+    poolSize = pool;
+  }
+  return poolSize > 0 ? Math.round(pw.length * Math.log2(poolSize)) : 0;
+}
+
+const EXTRAS_POOL_SIZE  = 18;  // !@#$%^&* (8) + 0-9 (10)
+const RANDOM_SEP_COUNT  = 13;  // length of RANDOM_SEPS array
+// Full per-phrase entropy: base + extras (char + word choice + position) + separator + caps.
+// All params passed from generator with exact values — no string inference.
+// extrasData: array of {wordLen} for each injection, for accurate position bits
+function calcEntropyForPassphrase(wordCount, listSize, extrasData, alphaCharCount, randomSep, randomCaps) {
+  let bits = wordCount * Math.log2(listSize);
+  // Each injection: log2(18) for char choice + log2(wordCount) for word choice
+  //                 + log2(wordLen + 1) for insertion position
+  for (const {wordLen} of extrasData) {
+    bits += Math.log2(EXTRAS_POOL_SIZE);          // which char
+    bits += Math.log2(wordCount);                 // which word
+    bits += Math.log2(wordLen + 1);               // where in word
+  }
+  if (randomSep)  bits += (wordCount - 1) * Math.log2(RANDOM_SEP_COUNT);
+  if (randomCaps) bits += alphaCharCount  * Math.log2(2);
+  return Math.round(bits);
+}
+
+// Theoretical entropy: treats each character as independently drawn from
+// the observed charset — what a generic brute-force attacker must search.
+function calcTheoreticalEntropy(str) {
+  let pool = 0;
+  if (/[a-z]/.test(str)) pool += 26;
+  if (/[A-Z]/.test(str)) pool += 26;
+  if (/[0-9]/.test(str)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(str)) pool += 24;
+  return pool > 0 ? Math.round(str.length * Math.log2(pool)) : 0;
+}
+
+// ── TOOLTIP ───────────────────────────────────────────────────────────────────
+const _tip = document.getElementById('entropyTip');
+// showTip(el, effectiveBits, theoreticalBits)
+// theoreticalBits: length × log2(configured or observed pool) — what generic attacker faces
+// effectiveBits:   structural entropy — what targeted attacker faces
+function showTip(el, effectiveBits, theoreticalBits) {
+  const color  = effectiveBits < 50 ? '#ef4444' : effectiveBits < 80 ? '#f59e0b' : effectiveBits < 100 ? '#22c55e' : '#06b6d4';
+  const label  = effectiveBits < 50 ? 'Weak' : effectiveBits < 80 ? 'Moderate' : effectiveBits < 100 ? 'Strong' : 'Very strong';
+  const theoBits = theoreticalBits !== undefined ? theoreticalBits : effectiveBits;
+  const same   = theoBits === effectiveBits;
+
+  _tip.querySelector('#tip-theoretical').textContent              = theoBits + ' bits';
+  _tip.querySelector('#tip-theoretical-section').style.display    = same ? 'none' : '';
+  _tip.querySelector('#tip-effective').textContent                = effectiveBits + ' bits';
+  _tip.querySelector('#tip-effective').style.color                = color;
+  _tip.querySelector('#tip-strength').textContent                 = label;
+  _tip.querySelector('#tip-strength').style.color                 = color;
+  _tip.querySelector('#tip-effective-label').style.color          = color;
+  _tip.querySelector('#tip-effective-label').textContent          = same ? 'Entropy' : 'Effective Entropy';
+  const bar = _tip.querySelector('#tip-bar');
+  bar.style.width      = Math.min(100, effectiveBits / 1.28) + '%';
+  bar.style.background = color;
+  const r = el.getBoundingClientRect();
+  _tip.style.left = (r.left + r.width / 2) + 'px';
+  _tip.style.top  = (r.top - (same ? 80 : 110)) + 'px';
+  _tip.classList.add('visible');
+}
+function hideTip() { _tip.classList.remove('visible'); }
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderItems(outputId, items, colorClass, entropyFn, theoreticalFn) {
+  const el = document.getElementById(outputId);
+  el.innerHTML = '';
+  if (!items || !items.length) {
+    el.innerHTML = '<div class="output-empty"><span class="watermark" style="font-size:18px;opacity:0.15;color:var(--text-muted);">no results</span></div>';
+    return;
+  }
+  items.forEach(text => {
+    const row  = document.createElement('div');  row.className = 'item';
+    const span = document.createElement('span'); span.className = 'item-text ' + colorClass; span.textContent = text;
+    const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); });
+    });
+    if (entropyFn) {
+      const effectiveBits   = entropyFn(text);
+      const theoreticalBits = theoreticalFn ? theoreticalFn(text) : calcTheoreticalEntropy(text);
+      row.addEventListener('mouseenter', () => showTip(row, effectiveBits, theoreticalBits));
+      row.addEventListener('mouseleave', hideTip);
+    }
+    row.appendChild(span); row.appendChild(btn);
+    el.appendChild(row);
+  });
+}
+
+function renderWide(outputId, items, colorClass, extraFn) {
+  // for wide single-column outputs, optionally with extra sub-element per item
+  const el = document.getElementById(outputId);
+  el.innerHTML = '';
+  if (!items || !items.length) return;
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item';
+    const span = document.createElement('span');
+    span.className = 'item-text ' + colorClass;
+    span.textContent = typeof item === 'string' ? item : item.text;
+    const btn = document.createElement('span');
+    btn.className = 'copy-btn';
+    btn.textContent = '📋';
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const val = typeof item === 'string' ? item : item.copyText || item.text;
+      navigator.clipboard.writeText(val).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); });
+    });
+    row.appendChild(span); row.appendChild(btn);
+    if (extraFn) {
+      const extra = extraFn(item, row);
+      if (extra) el.appendChild(extra);
+      else el.appendChild(row);
+    } else {
+      el.appendChild(row);
+    }
+  });
+}
+
+function copyAll(prefix) {
+  const el = document.getElementById(prefix + '-output') || document.getElementById(prefix + 'output');
+  if (!el) return;
+  const texts = [...el.querySelectorAll('.item-text')].map(s => s.textContent).join('\n');
+  navigator.clipboard.writeText(texts).then(() => showToast('Copied ' + el.querySelectorAll('.item-text').length + ' items'));
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀ Light';
+  saveSettings();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+const TAB_DEFS = [
+  { id: 'general',   label: 'General',   always: true },
+  { id: 'security',  label: 'Security',  always: false },
+  { id: 'developer', label: 'Developer', always: false },
+  { id: 'crypto',    label: 'Crypto',    always: false },
+];
+
+// which generators belong to which tab
+const GEN_TAB = {
+  password:'general', passphrase:'general', pin:'general', username:'general',
+  apikey:'security', recovery:'security', totp:'security',
+  uuid:'developer', jwt:'developer', webhook:'developer', base64:'developer',
+  bip39:'crypto',
+};
+
+let _activeTab = 'general';
+
+function switchTab(tabId) {
+  _activeTab = tabId;
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+}
+
+function rebuildTabBar() {
+  // Determine which tabs have at least one active generator
+  const activeGens = new Set(
+    GENERATOR_IDS.filter(id => {
+      const tog = document.getElementById('tog-' + id);
+      return tog && tog.querySelector('input').checked;
+    })
+  );
+  const activeTabs = TAB_DEFS.filter(t => t.always || [...activeGens].some(g => GEN_TAB[g] === t.id));
+  const nav = document.getElementById('tabsNav');
+  const showTabs = activeTabs.length > 1;
+  nav.classList.toggle('visible', showTabs);
+  document.querySelector('.wrap').classList.toggle('tabs-showing', showTabs);
+  nav.innerHTML = '';
+  if (!showTabs) {
+    switchTab('general');
+    return;
+  }
+  activeTabs.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (t.id === _activeTab ? ' active' : '');
+    btn.textContent = t.label;
+    btn.dataset.tab = t.id;
+    btn.addEventListener('click', () => switchTab(t.id));
+    nav.appendChild(btn);
+  });
+  // If current active tab is no longer visible, switch to general
+  if (!activeTabs.find(t => t.id === _activeTab)) switchTab('general');
+}
+
+// ── GENERATOR TOGGLES ─────────────────────────────────────────────────────────
+const GENERATOR_IDS = ['password','passphrase','pin','username','apikey','recovery','totp','uuid','jwt','webhook','base64','bip39'];
+const GENERATOR_DEFAULTS = { password:true, passphrase:true, pin:false, username:false, apikey:false, recovery:false, totp:false, uuid:false, jwt:false, webhook:false, base64:false, bip39:false };
+
+function toggleGenerator(name, enabled) {
+  const tog = document.getElementById('tog-' + name);
+  if (tog) tog.classList.toggle('active', enabled);
+  const card = document.getElementById('section-' + name);
+  if (card) card.style.display = enabled ? '' : 'none';
+  // If enabling a generator on a non-general tab, switch to that tab
+  if (enabled && GEN_TAB[name] !== 'general') switchTab(GEN_TAB[name]);
+  rebuildTabBar();
+  saveSettings();
+}
+
+// ── SETTINGS MODAL ────────────────────────────────────────────────────────────
+function openSettings() { renderWordListUI(); renderNoveltyListUI(); document.getElementById('settingsOverlay').classList.add('open'); }
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+function openEntropyInfo() { document.getElementById('entropyInfoOverlay').classList.add('open'); }
+function closeEntropyInfo() { document.getElementById('entropyInfoOverlay').classList.remove('open'); }
+
+// ── PASSWORD MODE ─────────────────────────────────────────────────────────────
+let _pwMode = 'random';
+const CONSONANTS = 'bcdfghjklmnprstvwxyz';
+const VOWELS = 'aeiou';
+
+function setPwMode(mode) {
+  _pwMode = mode;
+  ['random','memorable','pronounceable'].forEach(m => {
+    document.getElementById('pw-panel-' + m).style.display = m === mode ? '' : 'none';
+    document.querySelectorAll('#pw-mode-ctrl .seg-btn').forEach((b,i) => {
+      b.classList.toggle('active', ['random','memorable','pronounceable'][i] === mode);
+    });
+  });
+  const labels = { random:'Passwords', memorable:'Memorable', pronounceable:'Pronounceable' };
+  document.getElementById('pw-output-label').textContent = labels[mode];
+  saveSettings();
+}
+
+function generatePassword() {
+  const qty   = parseInt(document.getElementById('pw-qty').value);
+  const floor = parseInt(document.getElementById('pw-floor').value) || 0;
+
+  let makeOne;
+  let entropyFn;
+
+  if (_pwMode === 'random') {
+    const length = parseInt(document.getElementById('pw-length').value);
+    const upper  = document.getElementById('pw-upper').checked;
+    const lower  = document.getElementById('pw-lower').checked;
+    const nums   = document.getElementById('pw-nums').checked;
+    const spec   = document.getElementById('pw-special').checked;
+    const noAmb  = document.getElementById('pw-noambig').checked;
+    const AMBIG  = new Set(['0','O','l','1','I']);
+    let pool = '';
+    if (upper) pool += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (lower) pool += 'abcdefghijklmnopqrstuvwxyz';
+    if (nums)  pool += '0123456789';
+    if (spec)  pool += '!@#$%^&*()_+[]{}|;:,.<>?';
+    if (noAmb) pool = pool.split('').filter(c => !AMBIG.has(c)).join('');
+    if (!pool) { showToast('Select at least one character type'); return; }
+    const poolSize = pool.length; // exact configured pool — consistent across all items
+    makeOne  = () => { let p = ''; for (let j = 0; j < length; j++) p += pool[randInt(pool.length)]; return p; };
+    entropyFn = (_text) => Math.round(length * Math.log2(poolSize)); // deterministic — same for every item
+  } else if (_pwMode === 'memorable') {
+    const caps    = document.getElementById('mem-caps').checked;
+    const useNums = document.getElementById('mem-nums').checked;
+    const useSpec = document.getElementById('mem-special').checked;
+    const padLen  = parseInt(document.getElementById('mem-pad').value);
+    const SPEC    = '!@#$%&*';
+    const padPool = (useNums ? 10 : 0) + (useSpec ? SPEC.length : 0);
+    makeOne = () => {
+      let word = WORD_LIST[randInt(WORD_LIST.length)];
+      if (caps) word = word.charAt(0).toUpperCase() + word.slice(1);
+      let pad = '';
+      for (let j = 0; j < padLen; j++) {
+        const r = randInt(padPool);
+        if (useNums && (!useSpec || r < 10)) pad += r.toString();
+        else if (useSpec) pad += SPEC[randInt(SPEC.length)];
+      }
+      return word + pad;
+    };
+    // Entropy: 1 word from list + padLen chars from padPool
+    const wordBits = Math.log2(WORD_LIST.length);
+    const padBits  = padPool > 0 ? padLen * Math.log2(padPool) : 0;
+    entropyFn = (_text) => Math.round(wordBits + padBits);
+  } else {
+    // Pronounceable
+    const sylCount = parseInt(document.getElementById('pro-syl').value);
+    const useCaps  = document.getElementById('pro-caps').checked;
+    const useNums  = document.getElementById('pro-nums').checked;
+    // Each syllable = 1 of (consonants×vowels) combos
+    const sylPool  = CONSONANTS.length * VOWELS.length;
+    const numBits  = useNums ? Math.log2(90) : 0; // randInt(90)+10
+    // Caps: true 50/50 per consonant = 1 bit per syllable (not 0.811 from 25/75)
+    const capBits  = useCaps ? sylCount * Math.log2(2) : 0;
+    makeOne = () => {
+      let p = '';
+      for (let s = 0; s < sylCount; s++) {
+        let con = CONSONANTS[randInt(CONSONANTS.length)];
+        const vow = VOWELS[randInt(VOWELS.length)];
+        if (useCaps && randInt(2) === 0) con = con.toUpperCase(); // true 50/50
+        p += con + vow;
+      }
+      if (useNums) p += (randInt(90) + 10).toString();
+      return p;
+    };
+    entropyFn = (_text) => Math.round(sylCount * Math.log2(sylPool) + numBits + capBits);
+  }
+
+  const results   = [];
+  const DRY_LIMIT = 2000;
+  let   dryStreak = 0;
+  while (results.length < qty && dryStreak < DRY_LIMIT) {
+    const p = makeOne();
+    if (floor === 0 || entropyFn(p) >= floor) {
+      results.push(p);
+      dryStreak = 0;
+    } else {
+      dryStreak++;
+    }
+  }
+
+  if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
+  window._lastPW = results;
+  // For random mode, theoretical = effective (both use configured pool).
+  // For memorable/pronounceable, theoretical uses observed charset (calcTheoreticalEntropy default).
+  const theoreticalFn = _pwMode === 'random' ? entropyFn : null;
+  renderItems('pw-output', results, 'blue', entropyFn, theoreticalFn);
+  document.getElementById('pw-count').textContent = results.length + ' generated';
+  document.getElementById('pw-copy-all').style.display = '';
+  saveSettings();
+}
+
+// ── PASSPHRASE ────────────────────────────────────────────────────────────────
+const RANDOM_SEPS = ['-','_','.','~','/','+',' ',':','=','@','!','#','*'];
+
+// User preference memory for passphrase words and password length
+let _ppWordsUserPref  = 4;
+let _pwLengthUserPref = 26;
+
+// Sync password length up when floor exceeds what current length can achieve,
+// back down (to user pref) when floor is lowered.
+function syncLengthToFloor() {
+  const floor  = parseInt(document.getElementById('pw-floor').value) || 0;
+  const slider = document.getElementById('pw-length');
+  const label  = document.getElementById('pw-len-val');
+  if (floor === 0) {
+    slider.value    = _pwLengthUserPref;
+    label.textContent = _pwLengthUserPref;
+    return;
+  }
+  // Calculate pool size from current checkboxes
+  const upper = document.getElementById('pw-upper').checked;
+  const lower = document.getElementById('pw-lower').checked;
+  const nums  = document.getElementById('pw-nums').checked;
+  const spec  = document.getElementById('pw-special').checked;
+  const noAmb = document.getElementById('pw-noambig').checked;
+  let poolSize = 0;
+  if (upper) poolSize += noAmb ? 24 : 26;
+  if (lower) poolSize += noAmb ? 24 : 26;
+  if (nums)  poolSize += noAmb ? 8  : 10;
+  if (spec)  poolSize += 24; // actual pool: !@#$%^&*()_+[]{}|;:,.<>? = 24 chars
+  if (poolSize < 2) return;
+  const bitsPerChar = Math.log2(poolSize);
+  // Min length needed so theoretical max reaches floor
+  const minLen  = Math.ceil(floor / bitsPerChar);
+  const effective = Math.min(128, Math.max(_pwLengthUserPref, minLen));
+  slider.value      = effective;
+  label.textContent = effective;
+}
+
+function syncWordsToFloor() {
+  const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
+  const list     = getActiveWordList();
+  const slider   = document.getElementById('pp-words');
+  const label    = document.getElementById('pp-words-val');
+  if (floor === 0) {
+    slider.value      = _ppWordsUserPref;
+    label.textContent = _ppWordsUserPref;
+    return;
+  }
+  const extras    = document.getElementById('pp-extras').checked;
+  const randomSep = document.getElementById('pp-sep-random').checked;
+  const caps      = document.getElementById('pp-caps').checked;
+  const bitsPerWord = Math.log2(list.length);
+  const avgWordLen  = list.reduce((sum, w) => sum + w.length, 0) / list.length;
+
+  // Find lowest word count where MAX achievable entropy >= floor
+  let minNeeded = _ppWordsUserPref;
+  for (let n = _ppWordsUserPref; n <= 9; n++) {
+    const sepBits       = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
+    const capBits       = caps      ? n * avgWordLen * Math.log2(2) : 0;
+    const maxExtrasBits = extras
+      ? 3 * (Math.log2(EXTRAS_POOL_SIZE) + Math.log2(n) + Math.log2(avgWordLen + 1))
+      : 0;
+    const maxBits = n * bitsPerWord + maxExtrasBits + sepBits + capBits;
+    if (maxBits >= floor) { minNeeded = n; break; }
+    minNeeded = n + 1;
+  }
+  const effective   = Math.min(9, Math.max(_ppWordsUserPref, minNeeded));
+  slider.value      = effective;
+  label.textContent = effective;
+}
+
+function toggleRandomSep(isRandom) {
+  const input = document.getElementById('pp-sep');
+  input.disabled = isRandom;
+  input.style.opacity = isRandom ? '0.35' : '1';
+  saveSettings();
+}
+
+function getActiveSep() {
+  if (document.getElementById('pp-sep-random').checked) return RANDOM_SEPS[randInt(RANDOM_SEPS.length)];
+  return document.getElementById('pp-sep').value;
+}
+
+function getActiveWordList() {
+  const sel = document.getElementById('pp-wordlist');
+  const val = sel ? sel.value : 'builtin';
+
+  // Novelty mode selections
+  if (val === 'novelty-all') {
+    const seen = new Set(); const merged = [];
+    for (const lst of window._noveltyLists) { for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } } }
+    return merged;
+  }
+  if (val.startsWith('novelty-')) {
+    const idx = parseInt(val.replace('novelty-', ''));
+    if (!isNaN(idx) && window._noveltyLists[idx]) return window._noveltyLists[idx].words;
+  }
+
+  // Standard mode selections
+  if (val === 'builtin') return WORD_LIST;
+  if (val === 'all') {
+    const seen = new Set(); const merged = [];
+    for (const w of WORD_LIST) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } }
+    for (const lst of window._customLists) { for (const w of lst.words) { const k = w.toLowerCase(); if (!seen.has(k)) { seen.add(k); merged.push(w); } } }
+    return merged;
+  }
+  const idx = parseInt(val);
+  if (!isNaN(idx) && window._customLists[idx]) return window._customLists[idx].words;
+  return WORD_LIST;
+}
+
+function generatePassphrase() {
+  const numWords = parseInt(document.getElementById('pp-words').value);
+  const qty      = parseInt(document.getElementById('pp-qty').value);
+  const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
+  const caps     = document.getElementById('pp-caps').checked;
+  const extras   = document.getElementById('pp-extras').checked;
+  const isRandom = document.getElementById('pp-sep-random').checked;
+  const list     = getActiveWordList();
+  const SPECIAL  = '!@#$%^&*'; const NUMS = '0123456789';
+
+  // Returns {text, extrasCount, alphaCharCount} so entropy is exact per phrase
+  function makePhrase() {
+    let words = [];
+    for (let w = 0; w < numWords; w++) {
+      let word = list[randInt(list.length)];
+      if (caps) word = word.split('').map(c => randInt(2) ? c.toUpperCase() : c.toLowerCase()).join('');
+      words.push(word);
+    }
+    // extrasData: array of {wordLen} per injection — for accurate position entropy
+    const extrasData = [];
+    if (extras) {
+      const count = randInt(Math.min(numWords, 3)) + 1;
+      for (let i = 0; i < count; i++) {
+        const idx     = randInt(words.length);
+        const wordLen = words[idx].replace(/[^a-zA-Z]/g, '').length; // alpha length before inject
+        const ch      = randInt(2) ? NUMS[randInt(NUMS.length)] : SPECIAL[randInt(SPECIAL.length)];
+        const pos     = randInt(words[idx].length + 1);
+        words[idx]    = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
+        extrasData.push({ wordLen });
+      }
+    }
+    // Count alpha chars across all words (after injection) for caps entropy
+    const alphaCharCount = words.join('').replace(/[^a-zA-Z]/g, '').length;
+    const text = isRandom
+      ? words.reduce((acc, word, i) => i === 0 ? word : acc + RANDOM_SEPS[randInt(RANDOM_SEPS.length)] + word)
+      : words.join(getActiveSep());
+    return { text, extrasData, alphaCharCount };
+  }
+
+  const phrases     = []; // store {text, bits} for tooltip
+  const DRY_LIMIT   = 2000;
+  let   dryStreak   = 0;
+  while (phrases.length < qty && dryStreak < DRY_LIMIT) {
+    const { text, extrasData, alphaCharCount } = makePhrase();
+    const bits = calcEntropyForPassphrase(numWords, list.length, extrasData, alphaCharCount, isRandom, caps);
+    if (floor === 0 || bits >= floor) {
+      phrases.push({ text, bits });
+      dryStreak = 0;
+    } else {
+      dryStreak++;
+    }
+  }
+
+  if (!phrases.length) {
+    showToast('Could not meet entropy floor — try fewer words or lower the floor');
+    return;
+  }
+
+  window._lastPP = phrases.map(p => p.text);
+  // Pass pre-computed bits to renderItems so tooltip shows exact value per phrase
+  const el = document.getElementById('pp-output');
+  el.innerHTML = '';
+  phrases.forEach(({text, bits}) => {
+    const row  = document.createElement('div');  row.className = 'item';
+    const span = document.createElement('span'); span.className = 'item-text purple'; span.textContent = text;
+    const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+    btn.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
+    const theoBits = calcTheoreticalEntropy(text);
+    row.addEventListener('mouseenter', () => showTip(row, bits, theoBits));
+    row.addEventListener('mouseleave', hideTip);
+    row.appendChild(span); row.appendChild(btn);
+    el.appendChild(row);
+  });
+  document.getElementById('pp-count').textContent = phrases.length + ' generated';
+  document.getElementById('pp-copy-all').style.display = '';
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────────────
+function generatePIN() {
+  const length = parseInt(document.getElementById('pin-length').value);
+  const qty    = parseInt(document.getElementById('pin-qty').value);
+  const spaces = document.getElementById('pin-spaces').checked;
+  const noSeq  = document.getElementById('pin-noseq').checked;
+  const noRep  = document.getElementById('pin-norep').checked;
+  const pins   = [];
+  for (let i = 0; i < qty; i++) {
+    let digits = '', attempts = 0;
+    do {
+      digits = '';
+      for (let j = 0; j < length; j++) digits += randInt(10).toString();
+      attempts++;
+      if (attempts > 200) break;
+      const hasSeq = /(?:0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/.test(digits);
+      const hasRep = /(.)\1{2,}/.test(digits);
+      if (noSeq && hasSeq) continue;
+      if (noRep && hasRep) continue;
+      break;
+    } while (true);
+    if (spaces) digits = digits.match(/.{1,3}/g).join(' ');
+    pins.push(digits);
+  }
+  window._lastPIN = pins;
+  const pinBits = Math.round(length * Math.log2(10));
+  renderItems('pin-output', pins, 'green', () => pinBits, () => pinBits);
+  document.getElementById('pin-count').textContent = qty + ' generated';
+  document.getElementById('pin-copy-all').style.display = '';
+  saveSettings();
+}
+
+// ── USERNAME ──────────────────────────────────────────────────────────────────
+const ADJECTIVES = ['swift','brave','dark','bright','silent','wild','iron','stone','silver','golden','brave','calm','keen','bold','sharp','cool','deep','vast','pure','lone','free','true','clear','hard','soft','warm','cold','red','blue','grey','jade','amber','coral','azure','teal','rust','oak','pine'];
+const NOUNS = ['wolf','hawk','raven','fox','bear','lynx','eagle','river','storm','forge','blade','shield','arrow','tower','flame','frost','ridge','peak','cliff','vale','grove','haven','tide','crest','dawn','dusk','peak','gale','mist'];
+
+function generateUsername() {
+  const qty     = parseInt(document.getElementById('un-qty').value);
+  const useNums = document.getElementById('un-nums').checked;
+  const useSep  = document.getElementById('un-sep').checked;
+  const sepChar = document.getElementById('un-sep-char').value || '_';
+  const pattern = document.getElementById('un-pattern').value;
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    const adj  = ADJECTIVES[randInt(ADJECTIVES.length)];
+    const noun = NOUNS[randInt(NOUNS.length)];
+    const num  = useNums ? (randInt(900) + 10).toString() : '';
+    let parts = [];
+    if (pattern === 'adj-noun') parts = [adj, noun];
+    else if (pattern === 'noun-num') parts = [noun, num].filter(Boolean);
+    else if (pattern === 'adj-noun-num') parts = [adj, noun, num].filter(Boolean);
+    else parts = [WORD_LIST[randInt(WORD_LIST.length)], WORD_LIST[randInt(WORD_LIST.length)]];
+    results.push(useSep ? parts.join(sepChar) : parts.join(''));
+  }
+  window._lastUN = results;
+  renderItems('un-output', results, 'purple');
+  document.getElementById('un-count').textContent = qty + ' generated';
+  document.getElementById('un-copy-all').style.display = '';
+}
+
+// ── API KEY ───────────────────────────────────────────────────────────────────
+const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function randHex(n) { return Array.from(randBytes(n)).map(b => b.toString(16).padStart(2,'0')).join(''); }
+function randB62(n) { let s=''; for(let i=0;i<n;i++) s+=B62[randInt(B62.length)]; return s; }
+
+function generateApiKey() {
+  const fmt = document.getElementById('ak-format').value;
+  const len = parseInt(document.getElementById('ak-length').value);
+  const qty = parseInt(document.getElementById('ak-qty').value);
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    let key;
+    if (fmt === 'hex') key = randHex(Math.ceil(len/2)).slice(0, len);
+    else if (fmt === 'base62') key = randB62(len);
+    else if (fmt === 'sk') key = 'sk-' + randB62(len);
+    else if (fmt === 'whsec') key = 'whsec_' + randB62(len);
+    else key = 'Bearer ' + randB62(len);
+    results.push(key);
+  }
+  window._lastAK = results;
+  const akPool = fmt === 'hex' ? 16 : 62;
+  const akBits = Math.round(len * Math.log2(akPool));
+  renderItems('ak-output', results, 'rose', () => akBits, () => akBits);
+  document.getElementById('ak-count').textContent = qty + ' generated';
+  document.getElementById('ak-copy-all').style.display = '';
+}
+
+// ── RECOVERY CODES ────────────────────────────────────────────────────────────
+function generateRecoveryCodes() {
+  const hyphen = document.getElementById('rc-hyphen').checked;
+  const upper  = document.getElementById('rc-upper').checked;
+  const chunks = parseInt(document.getElementById('rc-chunks').value);
+  const size   = parseInt(document.getElementById('rc-size').value);
+  const qty    = parseInt(document.getElementById('rc-qty').value);
+  const CHARS  = upper ? '0123456789ABCDEFGHJKMNPQRSTVWXYZ' : '0123456789abcdefghjkmnpqrstvwxyz';
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    const parts = [];
+    for (let c = 0; c < chunks; c++) {
+      let chunk = '';
+      for (let j = 0; j < size; j++) chunk += CHARS[randInt(CHARS.length)];
+      parts.push(chunk);
+    }
+    results.push(hyphen ? parts.join('-') : parts.join(''));
+  }
+  window._lastRC = results;
+  const rcBits = Math.round(chunks * size * Math.log2(CHARS.length));
+  renderItems('rc-output', results, 'rose', () => rcBits, () => rcBits);
+  document.getElementById('rc-count').textContent = qty + ' generated';
+  document.getElementById('rc-copy-all').style.display = '';
+}
+
+// ── TOTP SECRET ───────────────────────────────────────────────────────────────
+const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function generateTOTP() {
+  const byteLen = parseInt(document.getElementById('totp-len').value);
+  const qty     = parseInt(document.getElementById('totp-qty').value);
+  const spaces  = document.getElementById('totp-spaces').checked;
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    const bytes = randBytes(byteLen);
+    let bits = '', b32 = '';
+    for (const byte of bytes) bits += byte.toString(2).padStart(8, '0');
+    for (let j = 0; j + 5 <= bits.length; j += 5) b32 += BASE32_CHARS[parseInt(bits.slice(j, j+5), 2)];
+    results.push(spaces ? b32.match(/.{1,4}/g).join(' ') : b32);
+  }
+  window._lastTOTP = results;
+  const totpBits = byteLen * 8;
+  renderItems('totp-output', results, 'rose', () => totpBits, () => totpBits);
+  document.getElementById('totp-count').textContent = qty + ' generated';
+  document.getElementById('totp-copy-all').style.display = '';
+}
+
+// ── UUID v4 ───────────────────────────────────────────────────────────────────
+function generateUUID() {
+  const qty      = parseInt(document.getElementById('uuid-qty').value);
+  const upper    = document.getElementById('uuid-upper').checked;
+  const noHyphen = document.getElementById('uuid-nohyphen').checked;
+  const braces   = document.getElementById('uuid-braces').checked;
+  const results  = [];
+  for (let i = 0; i < qty; i++) {
+    const b = randBytes(16);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const hex = Array.from(b).map(x => x.toString(16).padStart(2,'0')).join('');
+    let u = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+    if (upper) u = u.toUpperCase();
+    if (noHyphen) u = u.replace(/-/g,'');
+    if (braces) u = '{' + u + '}';
+    results.push(u);
+  }
+  window._lastUUID = results;
+  renderItems('uuid-output', results, 'cyan');
+  document.getElementById('uuid-count').textContent = qty + ' generated';
+  document.getElementById('uuid-copy-all').style.display = '';
+}
+
+// ── JWT ───────────────────────────────────────────────────────────────────────
+async function hmacSign(secret, message, alg) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(secret), { name:'HMAC', hash: alg }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', keyMaterial, enc.encode(message));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+function b64url(obj) {
+  return btoa(JSON.stringify(obj)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generateJWT() {
+  const alg     = document.getElementById('jwt-alg').value;
+  const secret  = document.getElementById('jwt-secret').value || randB62(32);
+  const sub     = document.getElementById('jwt-sub').value;
+  const iss     = document.getElementById('jwt-iss').value;
+  const expHrs  = parseInt(document.getElementById('jwt-exp').value);
+  const claimsRaw = document.getElementById('jwt-claims').value;
+  const header  = { alg, typ: 'JWT' };
+  const now     = Math.floor(Date.now() / 1000);
+  const payload = { iat: now };
+  if (sub) payload.sub = sub;
+  if (iss) payload.iss = iss;
+  if (expHrs > 0) payload.exp = now + expHrs * 3600;
+  if (claimsRaw.trim()) {
+    try { Object.assign(payload, JSON.parse(claimsRaw)); } catch { showToast('Invalid JSON in claims'); return; }
+  }
+  const hashAlg = alg === 'HS256' ? 'SHA-256' : alg === 'HS384' ? 'SHA-384' : 'SHA-512';
+  const unsigned = b64url(header) + '.' + b64url(payload);
+  const sig = await hmacSign(secret, unsigned, hashAlg);
+  const token = unsigned + '.' + sig;
+
+  const el = document.getElementById('jwt-output');
+  el.innerHTML = '';
+
+  // render single item with expandable decoded view
+  const row = document.createElement('div');
+  row.className = 'item';
+  row.style.flexDirection = 'column';
+  row.style.alignItems = 'stretch';
+
+  const topRow = document.createElement('div');
+  topRow.style.cssText = 'display:flex;align-items:flex-start;gap:6px;';
+  const span = document.createElement('span');
+  span.className = 'item-text cyan';
+  span.textContent = token;
+  const copyBtn = document.createElement('span');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = '📋';
+  copyBtn.addEventListener('click', () => { navigator.clipboard.writeText(token).then(() => { copyBtn.textContent = '✔'; setTimeout(() => copyBtn.textContent = '📋', 1000); }); });
+  topRow.appendChild(span); topRow.appendChild(copyBtn);
+
+  const toggleRow = document.createElement('div');
+  toggleRow.style.cssText = 'display:flex;gap:10px;padding:4px 0 0;';
+  const togBtn = document.createElement('span');
+  togBtn.className = 'jwt-toggle';
+  togBtn.textContent = '▶ Decoded';
+  const secretSpan = document.createElement('span');
+  secretSpan.style.cssText = 'font-size:11px;color:var(--text-muted);font-family:monospace;';
+  secretSpan.textContent = 'secret: ' + secret;
+  const copySecret = document.createElement('span');
+  copySecret.className = 'copy-btn';
+  copySecret.style.fontSize = '11px';
+  copySecret.textContent = '📋';
+  copySecret.addEventListener('click', () => { navigator.clipboard.writeText(secret).then(() => { copySecret.textContent = '✔'; setTimeout(() => copySecret.textContent = '📋', 1000); }); });
+  toggleRow.appendChild(togBtn); toggleRow.appendChild(secretSpan); toggleRow.appendChild(copySecret);
+
+  const decoded = document.createElement('div');
+  decoded.className = 'jwt-decoded';
+  decoded.textContent = 'Header:\n' + JSON.stringify(header, null, 2) + '\n\nPayload:\n' + JSON.stringify(payload, null, 2);
+  togBtn.addEventListener('click', () => {
+    decoded.classList.toggle('open');
+    togBtn.textContent = decoded.classList.contains('open') ? '▼ Decoded' : '▶ Decoded';
+  });
+
+  row.appendChild(topRow); row.appendChild(toggleRow); row.appendChild(decoded);
+  el.appendChild(row);
+  document.getElementById('jwt-count').textContent = '1 generated';
+  document.getElementById('jwt-copy-all').style.display = '';
+  window._lastJWT = [token];
+}
+
+// ── WEBHOOK SECRET ────────────────────────────────────────────────────────────
+function generateWebhook() {
+  const fmt = document.getElementById('wh-format').value;
+  const len = parseInt(document.getElementById('wh-length').value);
+  const qty = parseInt(document.getElementById('wh-qty').value);
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    let raw = fmt === 'raw' ? randHex(Math.ceil(len/2)).slice(0,len) : randB62(len);
+    if (fmt === 'whsec') raw = 'whsec_' + raw;
+    else if (fmt === 'whpk') raw = 'whpk_' + raw;
+    results.push(raw);
+  }
+  window._lastWH = results;
+  const whPool = fmt === 'raw' ? 16 : 62;
+  const whBits = Math.round(len * Math.log2(whPool));
+  renderItems('wh-output', results, 'cyan', () => whBits, () => whBits);
+  document.getElementById('wh-count').textContent = qty + ' generated';
+  document.getElementById('wh-copy-all').style.display = '';
+}
+
+// ── BASE64 ────────────────────────────────────────────────────────────────────
+let _b64Mode = 'encode';
+function setB64Mode(mode) {
+  _b64Mode = mode;
+  document.getElementById('b64-panel-encode').style.display = mode === 'encode' ? '' : 'none';
+  document.getElementById('b64-panel-generate').style.display = mode === 'generate' ? '' : 'none';
+  document.querySelectorAll('#b64-mode-ctrl .seg-btn').forEach((b,i) => b.classList.toggle('active', i === (mode==='encode'?0:1)));
+  document.getElementById('b64-output-label').textContent = mode === 'encode' ? 'Encoded' : 'Base64 Encoder Output';
+}
+
+function encodeBase64() {
+  const input = document.getElementById('b64-input').value;
+  if (!input) { showToast('Enter text to encode'); return; }
+  const encoded = btoa(unescape(encodeURIComponent(input)));
+  const el = document.getElementById('b64-output');
+  el.innerHTML = '';
+  const row = document.createElement('div'); row.className = 'item';
+  const span = document.createElement('span'); span.className = 'item-text cyan'; span.textContent = encoded;
+  const btn = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+  btn.addEventListener('click', () => { navigator.clipboard.writeText(encoded).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
+  row.appendChild(span); row.appendChild(btn); el.appendChild(row);
+  document.getElementById('b64-copy-all').style.display = '';
+  window._lastB64 = [encoded];
+}
+
+function generateBase64() {
+  const bytes = parseInt(document.getElementById('b64-bytes').value);
+  const qty   = parseInt(document.getElementById('b64-qty').value);
+  const results = [];
+  for (let i = 0; i < qty; i++) {
+    const b = randBytes(bytes);
+    results.push(btoa(String.fromCharCode(...b)));
+  }
+  window._lastB64 = results;
+  const b64Bits = bytes * 8;
+  renderItems('b64-output', results, 'cyan', () => b64Bits, () => b64Bits);
+  document.getElementById('b64-copy-all').style.display = '';
+}
+
+// ── BIP-39 ────────────────────────────────────────────────────────────────────
+// Standard BIP-39 English wordlist (2048 words, first 512 shown inline, rest loaded same array)
+const BIP39_WORDS = ["abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance","advice","aerobic","afford","afraid","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm","album","alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter","always","amateur","amazing","among","amount","amused","analyst","anchor","ancient","anger","angle","angry","animal","ankle","announce","annual","another","answer","antenna","antique","anxiety","any","apart","apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor","army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect","assault","asset","assist","assume","asthma","athlete","atom","attack","attend","attitude","attract","auction","audit","august","aunt","author","auto","autumn","average","avocado","avoid","awake","aware","away","awesome","awful","awkward","axis","baby","balance","bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle","beach","bean","beauty","because","become","beef","before","begin","behave","behind","believe","below","belt","bench","benefit","best","betray","better","between","beyond","bicycle","bid","bike","bind","biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood","blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","book","boost","border","boring","borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brave","breeze","brick","bridge","brief","bright","bring","brisk","broccoli","broken","bronze","broom","brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb","bulk","bullet","bundle","bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin","cable","cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon","canvas","canyon","capable","capital","captain","carbon","card","cargo","carpet","carry","cart","case","cash","casino","castle","casual","cat","catalog","catch","category","cattle","caught","cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk","champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry","chest","chicken","chief","child","chimney","choice","choose","chronic","chuckle","chunk","cigar","cinnamon","circle","citizen","city","civil","claim","clap","clarify","claw","clay","clean","clerk","clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud","clown","club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color","column","combine","come","comfort","comic","common","company","concert","conduct","confirm","congress","connect","consider","control","convince","cook","cool","copper","copy","coral","core","corn","correct","cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle","craft","cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp","critic","cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry","crystal","cube","culture","cup","cupboard","curious","current","curtain","curve","cushion","custom","cute","cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn","day","deal","debate","debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy","degree","delay","deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth","deputy","derive","describe","desert","design","desk","despair","destroy","detail","detect","develop","device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital","dignity","dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder","display","distance","divert","divide","divorce","dizzy","doctor","document","dog","doll","dolphin","domain","donate","donkey","donor","door","dose","double","dove","draft","dragon","drama","drastic","draw","dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb","dune","during","dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy","echo","ecology","edge","edit","educate","effort","egg","eight","either","elbow","elder","electric","elegant","element","elephant","elevator","elite","else","embark","embody","embrace","emerge","emotion","employ","empower","empty","enable","enact","endless","endorse","enemy","energy","enforce","engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry","envelope","episode","equal","equip","erase","erode","erosion","error","erupt","escape","essay","essence","estate","eternal","ethics","evidence","evil","evoke","evolve","exact","example","excess","exchange","excite","exclude","exercise","exhaust","exhibit","exile","exist","exit","exotic","expand","expire","explain","expose","express","extend","extra","eye","fable","face","faculty","faint","faith","fall","false","fame","family","famous","fan","fancy","fantasy","far","fashion","fat","fatal","father","fatigue","fault","favorite","feature","february","federal","fee","feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field","figure","file","film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit","fitness","fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor","flower","fluid","flush","fly","foam","focus","fog","foil","follow","food","foot","force","forest","forget","fork","fortune","forum","forward","fossil","foster","found","fox","fragile","frame","frequent","fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel","fun","funny","furnace","fury","future","gadget","gain","galaxy","gallery","game","gap","garbage","garden","garlic","garment","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine","gesture","ghost","giant","gift","giggle","ginger","giraffe","girl","give","glad","glance","glare","glass","glide","glimpse","globe","gloom","glory","glove","glow","glue","goat","goddess","gold","good","goose","gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grasp","grass","gravity","great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guide","guilt","guitar","gun","gym","habit","hair","half","hammer","hamster","hand","happy","harsh","harvest","hat","have","hawk","hazard","head","health","heart","heavy","hedgehog","height","hello","helmet","help","hen","hero","hidden","high","hill","hint","hip","hire","history","hobby","hockey","hold","hole","holiday","hollow","home","honey","hood","hope","horn","hospital","host","hour","hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband","hybrid","ice","icon","ignore","ill","illegal","image","imitate","immense","immune","impact","impose","improve","impulse","inbox","income","index","indicate","indoor","industry","infant","inflict","inform","inhale","inject","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact","interest","into","invest","invite","involve","iron","island","isolate","issue","item","ivory","jacket","jaguar","jar","jazz","jealous","jeans","jelly","jewel","job","join","joke","journey","joy","judge","juice","jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup","key","kick","kid","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know","lab","lamp","language","laptop","large","later","laugh","laundry","lava","lawn","lawsuit","layer","lazy","leader","learn","leave","lecture","left","leg","legal","legend","lemon","lend","length","lens","leopard","lesson","letter","level","liar","liberty","library","license","life","lift","like","limb","limit","link","lion","liquid","list","little","live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop","lottery","loud","lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyric","machine","mad","magic","magnet","maid","main","mammal","mango","mansion","manual","maple","marble","march","margin","master","match","material","math","matter","maximum","maze","meadow","mean","medal","media","melody","melt","member","memory","mention","menu","mercy","mesh","message","metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle","miss","mitten","mobile","model","modify","mom","monitor","monkey","monster","month","moon","moral","more","morning","mosquito","mother","motion","motor","mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music","must","mutual","myself","mystery","naive","name","napkin","narrow","nasty","nature","near","neck","need","negative","neglect","neither","nephew","nerve","nest","network","news","next","nice","night","noble","noise","nominee","noodle","normal","notable","note","nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey","object","oblige","obscure","obtain","ocean","october","odor","off","offer","office","often","oil","okay","old","olive","olympic","omit","once","onion","open","opera","oppose","option","orange","orbit","orchard","order","ordinary","organ","orient","original","orphan","ostrich","other","outdoor","outside","oval","over","own","oyster","ozone","pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper","parade","parent","park","parrot","party","pass","patch","path","patrol","pause","pave","payment","peace","peanut","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person","pet","phone","photo","phrase","physical","piano","picnic","picture","piece","pig","pigeon","pill","pilot","pink","pioneer","pipe","pistol","pitch","pizza","place","planet","plastic","plate","play","please","pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony","pool","popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice","praise","predict","prefer","prepare","present","pretty","prevent","price","pride","primary","print","priority","prison","private","prize","problem","process","produce","profit","program","project","promote","proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","punch","pupil","supply","supreme","sure","surface","surge","surprise","sustain","swallow","swamp","swap","swear","sweet","swift","swim","swing","switch","sword","symbol","symptom","syrup","table","tackle","tag","tail","talent","tank","tape","target","task","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test","text","thank","that","theme","then","theory","there","they","thing","this","thought","three","thrive","throw","thumb","thunder","ticket","tide","tiger","tilt","timber","time","tiny","tip","tired","title","toast","tobacco","today","together","toilet","token","tomato","tomorrow","tone","tongue","tonight","tooth","top","topic","topple","torch","tornado","tortoise","toss","total","tourist","toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap","trash","travel","tray","treat","tree","trend","trial","tribe","trick","trigger","trim","trip","trophy","trouble","truck","truly","trumpet","trust","truth","try","tube","tuition","tumble","tuna","tunnel","turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical","ugly","umbrella","unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","universe","unknown","unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset","urban","useful","useless","usual","utility","vacant","vacuum","vague","valid","valley","valve","van","vanish","vapor","various","vast","vault","vehicle","venture","venue","verb","verify","version","very","veto","viable","vibrant","vicious","victory","video","view","village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal","voice","void","volcano","volume","vote","voyage","wage","wagon","wait","walk","wall","walnut","want","warfare","warm","warrior","waste","water","wave","way","wealth","weapon","wear","weasel","web","wedding","weekend","weird","welcome","well","west","wet","whale","wheat","wheel","when","where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner","winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","world","worry","worth","wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"];
+
+async function generateBIP39() {
+  const wordCount   = parseInt(document.getElementById('bip-words').value);
+  const passphrase  = document.getElementById('bip-passphrase').value;
+  const showSeed    = document.getElementById('bip-showseed').checked;
+  const qty         = parseInt(document.getElementById('bip-qty').value);
+  const el          = document.getElementById('bip-output');
+  el.innerHTML      = '';
+
+  for (let q = 0; q < qty; q++) {
+    // Generate wordCount random words from BIP-39 list
+    const words = [];
+    for (let i = 0; i < wordCount; i++) words.push(BIP39_WORDS[randInt(BIP39_WORDS.length)]);
+    const phrase = words.join(' ');
+
+    const row = document.createElement('div'); row.className = 'item'; row.style.flexDirection = 'column'; row.style.alignItems = 'stretch';
+    const topRow = document.createElement('div'); topRow.style.cssText = 'display:flex;align-items:flex-start;gap:6px;';
+    const span = document.createElement('span'); span.className = 'item-text orange'; span.textContent = phrase;
+    const btn = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+    btn.addEventListener('click', () => { navigator.clipboard.writeText(phrase).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
+    const bipBits = Math.round(wordCount * Math.log2(2048)); // log2(2048) = 11 exactly
+    topRow.appendChild(span); topRow.appendChild(btn); row.appendChild(topRow);
+    row.addEventListener('mouseenter', () => showTip(row, bipBits, bipBits));
+    row.addEventListener('mouseleave', hideTip);
+
+    if (showSeed) {
+      // Derive PBKDF2 seed (BIP-39 standard: mnemonic + "mnemonic" + passphrase salt)
+      try {
+        const enc = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(phrase), 'PBKDF2', false, ['deriveBits']);
+        const seedBits = await crypto.subtle.deriveBits({ name:'PBKDF2', salt: enc.encode('mnemonic' + passphrase), iterations:2048, hash:'SHA-512' }, keyMaterial, 512);
+        const seedHex = Array.from(new Uint8Array(seedBits)).map(b => b.toString(16).padStart(2,'0')).join('');
+        const seedRow = document.createElement('div'); seedRow.style.cssText = 'font-size:10px;font-family:monospace;color:var(--text-muted);word-break:break-all;padding:4px 0 0;line-height:1.5;';
+        seedRow.textContent = 'Seed: ' + seedHex;
+        row.appendChild(seedRow);
+      } catch(e) {}
+    }
+    el.appendChild(row);
+  }
+  document.getElementById('bip-count').textContent = qty + ' generated';
+  document.getElementById('bip-copy-all').style.display = '';
+}
+
+// ── WORD LIST MANAGER ─────────────────────────────────────────────────────────
+function renderWordListUI() {
+  const container = document.getElementById('wl-list'); container.innerHTML = '';
+  const builtin = document.createElement('div'); builtin.className = 'wl-item';
+  builtin.innerHTML = `<span class="wl-item-name">Built-in</span><span class="wl-item-count">${WORD_LIST.length.toLocaleString()} words</span><span class="wl-item-badge builtin">default</span>`;
+  container.appendChild(builtin);
+  window._customLists.forEach((lst, i) => {
+    const row = document.createElement('div'); row.className = 'wl-item';
+    const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.className = 'wl-name-input'; nameInput.value = lst.name; nameInput.title = 'Click to rename';
+    const commit = () => { const n = nameInput.value.trim(); if (n && n !== window._customLists[i].name) { window._customLists[i].name = n; rebuildWordListSelector(); saveSettings(); } else if (!n) nameInput.value = window._customLists[i].name; };
+    nameInput.addEventListener('blur', commit);
+    nameInput.addEventListener('keydown', e => { if (e.key==='Enter') nameInput.blur(); if (e.key==='Escape') { nameInput.value = window._customLists[i].name; nameInput.blur(); } });
+    const count = document.createElement('span'); count.className = 'wl-item-count'; count.textContent = lst.words.length.toLocaleString() + ' words';
+    const badge = document.createElement('span'); badge.className = 'wl-item-badge'; badge.textContent = 'custom';
+    const rm = document.createElement('button'); rm.className = 'wl-remove'; rm.textContent = '✕'; rm.addEventListener('click', () => removeWordList(i));
+    row.appendChild(nameInput); row.appendChild(count); row.appendChild(badge); row.appendChild(rm);
+    container.appendChild(row);
+  });
+}
+
+// ── NOVELTY WORD LISTS ────────────────────────────────────────────────────────
+window._noveltyLists   = [];
+window._noveltyEnabled = false;
+window._noveltyMode    = false;  // whether passphrase card is in novelty mode
+
+function switchWlTab(tab) {
+  ['standard','novelty'].forEach(t => {
+    document.getElementById('wl-tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('wl-tab-' + t + '-btn').classList.toggle('active', t === tab);
+  });
+}
+
+function toggleNoveltyEnabled(enabled) {
+  window._noveltyEnabled = enabled;
+  document.getElementById('novelty-manager').style.display     = enabled ? '' : 'none';
+  document.getElementById('novelty-disabled-msg').style.display = enabled ? 'none' : '';
+  const toggleLabel = document.getElementById('novelty-toggle-label');
+  if (toggleLabel) toggleLabel.style.display = enabled ? 'flex' : 'none';
+  if (!enabled) {
+    // turn off novelty mode on the card if feature is disabled
+    window._noveltyMode = false;
+    const cb = document.getElementById('pp-novelty-mode');
+    if (cb) cb.checked = false;
+    rebuildWordListSelector();
+  }
+  renderNoveltyListUI();
+  saveSettings();
+}
+
+function toggleNoveltyMode(on) {
+  window._noveltyMode = on;
+  rebuildWordListSelector();
+  saveSettings();
+}
+
+function renderNoveltyListUI() {
+  const container = document.getElementById('wl-novelty-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (window._noveltyLists.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:12px;color:var(--text-muted);padding:4px 0 8px;';
+    empty.textContent = 'No novelty lists loaded yet.';
+    container.appendChild(empty);
+    return;
+  }
+  window._noveltyLists.forEach((lst, i) => {
+    const row = document.createElement('div'); row.className = 'wl-item';
+    const nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.className = 'wl-name-input'; nameInput.value = lst.name; nameInput.title = 'Click to rename';
+    const commit = () => { const n = nameInput.value.trim(); if (n && n !== window._noveltyLists[i].name) { window._noveltyLists[i].name = n; rebuildWordListSelector(); saveSettings(); } else if (!n) nameInput.value = window._noveltyLists[i].name; };
+    nameInput.addEventListener('blur', commit);
+    nameInput.addEventListener('keydown', e => { if (e.key==='Enter') nameInput.blur(); if (e.key==='Escape') { nameInput.value = window._noveltyLists[i].name; nameInput.blur(); } });
+    const count = document.createElement('span'); count.className = 'wl-item-count'; count.textContent = lst.words.length.toLocaleString() + ' words';
+    const badge = document.createElement('span'); badge.className = 'wl-item-badge'; badge.style.cssText = 'background:var(--purple-dim);color:var(--purple);border-color:rgba(167,139,250,.2);'; badge.textContent = 'novelty';
+    const rm = document.createElement('button'); rm.className = 'wl-remove'; rm.textContent = '✕'; rm.addEventListener('click', () => removeNoveltyList(i));
+    row.appendChild(nameInput); row.appendChild(count); row.appendChild(badge); row.appendChild(rm);
+    container.appendChild(row);
+  });
+}
+
+function removeNoveltyList(idx) {
+  window._noveltyLists.splice(idx, 1);
+  renderNoveltyListUI();
+  rebuildWordListSelector();
+  saveSettings();
+}
+
+function loadNoveltyListFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const status = document.getElementById('wl-novelty-load-status'); status.textContent = 'Loading…';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const words = e.target.result.split(/\r?\n/).map(w => w.trim()).filter(w => w.length > 0);
+    if (words.length < 20) { status.textContent = '✗ Too few words (min 20)'; setTimeout(() => status.textContent = '', 3000); }
+    else { window._noveltyLists.push({ name: file.name.replace(/\.txt$/i,''), words }); renderNoveltyListUI(); rebuildWordListSelector(); saveSettings(); status.textContent = `✓ ${words.length.toLocaleString()} words loaded`; setTimeout(() => status.textContent = '', 3000); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function removeWordList(idx) { window._customLists.splice(idx, 1); renderWordListUI(); rebuildWordListSelector(); saveSettings(); }
+function loadWordListFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const status = document.getElementById('wl-load-status'); status.textContent = 'Loading…';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const words = e.target.result.split(/\r?\n/).map(w => w.trim()).filter(w => w.length > 0);
+    if (words.length < 20) { status.textContent = '✗ Too few words (min 20)'; setTimeout(() => status.textContent = '', 3000); }
+    else { window._customLists.push({ name: file.name.replace(/\.txt$/i,''), words }); renderWordListUI(); rebuildWordListSelector(); saveSettings(); status.textContent = `✓ ${words.length.toLocaleString()} words loaded`; setTimeout(() => status.textContent = '', 3000); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function rebuildWordListSelector() {
+  const sel = document.getElementById('pp-wordlist'); if (!sel) return;
+  const prev = sel.value; sel.innerHTML = '';
+  const opt = (val, label) => { const o = document.createElement('option'); o.value = val; o.textContent = label; return o; };
+
+  if (window._noveltyMode && window._noveltyEnabled && window._noveltyLists.length > 0) {
+    // Novelty mode: show only novelty lists
+    window._noveltyLists.forEach((lst, i) => sel.appendChild(opt('novelty-' + i, `${lst.name} (${lst.words.length.toLocaleString()})`)));
+    if (window._noveltyLists.length > 1) {
+      const seen = new Set(); let count = 0;
+      for (const lst of window._noveltyLists) { for (const w of lst.words) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } } }
+      sel.appendChild(opt('novelty-all', `All novelty lists (${count.toLocaleString()}, deduped)`));
+    }
+  } else {
+    // Standard mode: show built-in + custom lists
+    sel.appendChild(opt('builtin', `Built-in (${WORD_LIST.length.toLocaleString()})`));
+    window._customLists.forEach((lst, i) => sel.appendChild(opt(String(i), `${lst.name} (${lst.words.length.toLocaleString()})`)));
+    if (window._customLists.length > 0) {
+      const seen = new Set(); let count = 0;
+      for (const w of WORD_LIST) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } }
+      for (const lst of window._customLists) { for (const w of lst.words) { if (!seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); count++; } } }
+      sel.appendChild(opt('all', `All lists (${count.toLocaleString()}, deduped)`));
+    }
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+// ── SETTINGS PERSISTENCE ──────────────────────────────────────────────────────
+// ── SETTINGS PERSISTENCE ─────────────────────────────────────────────────────
+// Single stable key — never changes. Migration handles schema evolution.
+const LS_KEY = 'pwgen_settings';
+
+// Default values for every setting — used as fallback during migration
+const SETTINGS_DEFAULTS = {
+  pwLength: '26', pwQty: '15',
+  pwUpper: true, pwLower: true, pwNums: true, pwSpecial: true, pwNoambig: false,
+  pwMode: 'random',   pwFloor: '0',
+  ppWords: '4', ppQty: '15',
+  ppCaps: true, ppExtras: true, ppSep: '-', ppSepRandom: false, ppWordlist: 'builtin', ppFloor: '0',
+  noveltyEnabled: false, noveltyMode: false, noveltyLists: [],
+  pinLength: '6', pinQty: '15', pinSpaces: false,
+  darkMode: true,
+  generators: GENERATOR_DEFAULTS,
+  customLists: [],
+};
+
+// Merge saved data with defaults — any missing key gets its default value.
+// Existing values (including customLists and generator states) are preserved.
+function migrateSettings(saved) {
+  if (!saved) return { ...SETTINGS_DEFAULTS };
+  const result = { ...SETTINGS_DEFAULTS };
+  // Scalar settings — use saved value if present
+  for (const key of Object.keys(SETTINGS_DEFAULTS)) {
+    if (key === 'generators') continue;
+    if (key === 'customLists') continue;
+    if (saved[key] !== undefined) result[key] = saved[key];
+  }
+  // Custom lists — always preserve
+  if (saved.customLists && Array.isArray(saved.customLists)) {
+    result.customLists = saved.customLists;
+  }
+  // Generator states — merge saved with defaults so new generators default to off
+  // without wiping existing enabled states
+  result.generators = { ...GENERATOR_DEFAULTS };
+  if (saved.generators) {
+    for (const id of GENERATOR_IDS) {
+      if (saved.generators[id] !== undefined) result.generators[id] = saved.generators[id];
+    }
+  }
+  return result;
+}
+
+function collectSettings() {
+  const gens = {};
+  GENERATOR_IDS.forEach(id => {
+    const t = document.getElementById('tog-' + id);
+    gens[id] = t ? t.querySelector('input').checked : GENERATOR_DEFAULTS[id];
+  });
+  return {
+    pwLength:   document.getElementById('pw-length').value,
+    pwQty:      document.getElementById('pw-qty').value,
+    pwUpper:    document.getElementById('pw-upper').checked,
+    pwLower:    document.getElementById('pw-lower').checked,
+    pwNums:     document.getElementById('pw-nums').checked,
+    pwSpecial:  document.getElementById('pw-special').checked,
+    pwNoambig:  document.getElementById('pw-noambig').checked,
+    pwMode:     _pwMode,
+    pwFloor:    document.getElementById('pw-floor').value,
+    ppWords:    document.getElementById('pp-words').value,
+    ppQty:      document.getElementById('pp-qty').value,
+    ppCaps:     document.getElementById('pp-caps').checked,
+    ppExtras:   document.getElementById('pp-extras').checked,
+    ppSep:      document.getElementById('pp-sep').value,
+    ppSepRandom: document.getElementById('pp-sep-random').checked,
+    ppWordlist: document.getElementById('pp-wordlist') ? document.getElementById('pp-wordlist').value : 'builtin',
+    ppFloor:    document.getElementById('pp-floor').value,
+    pinLength:  document.getElementById('pin-length').value,
+    pinQty:     document.getElementById('pin-qty').value,
+    pinSpaces:  document.getElementById('pin-spaces').checked,
+    darkMode:   !document.body.classList.contains('light'),
+    generators: gens,
+    customLists: window._customLists.map(l => ({ name: l.name, words: l.words })),
+    noveltyEnabled: window._noveltyEnabled,
+    noveltyMode:    window._noveltyMode,
+    noveltyLists:   window._noveltyLists.map(l => ({ name: l.name, words: l.words })),
+  };
+}
+
+function applySettings(s) {
+  if (!s) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+  const chk = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.checked = v; };
+  const lbl = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.textContent = v; };
+
+  set('pw-length', s.pwLength);   lbl('pw-len-val', s.pwLength);
+  if (s.pwLength !== undefined) _pwLengthUserPref = parseInt(s.pwLength);
+  set('pw-qty',    s.pwQty);      lbl('pw-qty-val', s.pwQty);
+  chk('pw-upper',   s.pwUpper);   chk('pw-lower',  s.pwLower);
+  chk('pw-nums',    s.pwNums);    chk('pw-special', s.pwSpecial);
+  chk('pw-noambig', s.pwNoambig);
+  if (s.pwMode) setPwMode(s.pwMode);
+  if (s.pwFloor !== undefined) { document.getElementById('pw-floor').value = s.pwFloor; updateFloorLabel('pw-floor','pw-floor-val','pw-floor-strength'); }
+
+  set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
+  if (s.ppWords !== undefined) _ppWordsUserPref = parseInt(s.ppWords);
+  set('pp-qty',   s.ppQty);       lbl('pp-qty-val',   s.ppQty);
+  chk('pp-caps',   s.ppCaps);     chk('pp-extras', s.ppExtras);
+  set('pp-sep', s.ppSep !== undefined ? s.ppSep : '-');
+  if (s.ppSepRandom) { chk('pp-sep-random', true); toggleRandomSep(true); }
+  if (s.ppFloor !== undefined) { document.getElementById('pp-floor').value = s.ppFloor; updateFloorLabel('pp-floor','pp-floor-val','pp-floor-strength'); }
+
+  set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
+  set('pin-qty',    s.pinQty);    lbl('pin-qty-val',  s.pinQty);
+  chk('pin-spaces', s.pinSpaces);
+
+  if (s.darkMode === false) {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙 Dark';
+  }
+
+  // Restore custom word lists
+  if (s.customLists && Array.isArray(s.customLists)) window._customLists = s.customLists;
+  // Restore novelty state
+  if (s.noveltyLists && Array.isArray(s.noveltyLists)) window._noveltyLists = s.noveltyLists;
+  window._noveltyEnabled = s.noveltyEnabled || false;
+  window._noveltyMode    = s.noveltyMode    || false;
+  const novCb = document.getElementById('novelty-enabled');
+  if (novCb) novCb.checked = window._noveltyEnabled;
+  const novManager = document.getElementById('novelty-manager');
+  if (novManager) novManager.style.display = window._noveltyEnabled ? '' : 'none';
+  const novMsg = document.getElementById('novelty-disabled-msg');
+  if (novMsg) novMsg.style.display = window._noveltyEnabled ? 'none' : '';
+  const novToggleLabel = document.getElementById('novelty-toggle-label');
+  if (novToggleLabel) novToggleLabel.style.display = window._noveltyEnabled ? 'flex' : 'none';
+  const novModeCb = document.getElementById('pp-novelty-mode');
+  if (novModeCb) novModeCb.checked = window._noveltyMode;
+  rebuildWordListSelector();
+  if (s.ppWordlist) {
+    const sel = document.getElementById('pp-wordlist');
+    if (sel && [...sel.options].some(o => o.value === s.ppWordlist)) sel.value = s.ppWordlist;
+  }
+
+  // Restore generator visibility
+  GENERATOR_IDS.forEach(id => {
+    const enabled = s.generators[id] !== undefined ? s.generators[id] : GENERATOR_DEFAULTS[id];
+    const tog  = document.getElementById('tog-'     + id);
+    const card = document.getElementById('section-' + id);
+    if (tog)  { tog.querySelector('input').checked = enabled; tog.classList.toggle('active', enabled); }
+    if (card) card.style.display = enabled ? '' : 'none';
+  });
+
+  rebuildTabBar();
+}
+
+function saveSettings() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(collectSettings())); } catch(e) {}
+}
+
+function loadSettings() {
+  // Try stable key first, then fall back to legacy versioned keys so
+  // existing saved data isn't lost on first load after update
+  const legacy = ['pwgen_settings_v3','pwgen_settings_v2','pwgen_settings_v1'];
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e) {}
+  if (!raw) {
+    for (const k of legacy) {
+      try { raw = localStorage.getItem(k); if (raw) break; } catch(e) {}
+    }
+  }
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  rebuildWordListSelector();
+  const saved   = loadSettings();
+  const merged  = migrateSettings(saved);
+  applySettings(merged);
+  // Immediately re-save under the stable key so legacy keys are superseded
+  saveSettings();
+  rebuildTabBar();
+  document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
+    .forEach(el => el.addEventListener('change', saveSettings));
+});
+</script>
+<div style="text-align:center;padding:24px 0 32px;display:flex;align-items:center;justify-content:center;gap:10px;">
+  <span style="font-size:13px;color:var(--text-muted);font-family:'DM Sans',sans-serif;letter-spacing:.01em;">Reliquary</span>
+  <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--blue);">v1.0</span>
+</div>
+
+</body>
+</html>
