@@ -170,6 +170,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .entropy-floor-strength.moderate{color:#f59e0b;}
 .entropy-floor-strength.strong{color:#22c55e;}
 .entropy-floor-strength.vstrong{color:#06b6d4;}
+.entropy-info-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:13px;padding:0 2px;line-height:1;transition:color .15s;flex-shrink:0;}
+.entropy-info-btn:hover{color:var(--blue);}
+.entropy-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:480px;max-width:calc(100vw - 32px);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.entropy-modal-body{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-size:13px;line-height:1.6;color:var(--text-secondary);}
+.entropy-modal-body h3{font-size:13px;font-weight:700;color:var(--text-primary);margin:0 0 2px;}
+.entropy-modal-body p{margin:0;}
+.em-section{display:flex;flex-direction:column;gap:4px;}
+.em-tag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;margin-bottom:4px;width:fit-content;}
+.em-tag.theoretical{background:var(--bg-card2);color:var(--text-muted);}
+.em-tag.effective{background:var(--blue-dim);color:var(--blue);}
+.em-divider{border:none;border-top:1px solid var(--border);margin:0;}
 .entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:10px 14px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:200px;transform:translateX(-50%);}
 .entropy-tip.visible{display:block;}
 .tip-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
@@ -401,7 +412,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val zero" id="pw-floor-val">none</span></label>
+          <label style="display:flex;align-items:center;gap:6px;">Min entropy <span class="val entropy-floor-val zero" id="pw-floor-val">none</span><button class="entropy-info-btn" onclick="openEntropyInfo()" title="About entropy">ⓘ</button></label>
           <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val','pw-floor-strength'); syncLengthToFloor();">
           <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pw-floor-strength"></span></div>
         </div>
@@ -454,7 +465,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val zero" id="pp-floor-val">none</span></label>
+          <label style="display:flex;align-items:center;gap:6px;">Min entropy <span class="val entropy-floor-val zero" id="pp-floor-val">none</span><button class="entropy-info-btn" onclick="openEntropyInfo()" title="About entropy">ⓘ</button></label>
           <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val','pp-floor-strength'); syncWordsToFloor();">
           <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pp-floor-strength"></span></div>
         </div>
@@ -901,6 +912,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 </div><!-- /wrap -->
 
+<!-- ABOUT ENTROPY MODAL -->
+<div class="modal-overlay" id="entropyInfoOverlay" onclick="if(event.target===this)closeEntropyInfo()">
+  <div class="entropy-modal">
+    <div class="modal-hd">
+      <span class="modal-title">About Entropy</span>
+      <button class="modal-close" onclick="closeEntropyInfo()">✕</button>
+    </div>
+    <div class="entropy-modal-body">
+      <p>Entropy measures how hard a password is to guess — expressed in bits, where each additional bit doubles the number of combinations an attacker must try. Higher bits means a larger search space.</p>
+
+      <hr class="em-divider">
+
+      <div class="em-section">
+        <span class="em-tag theoretical">Theoretical entropy</span>
+        <h3>What a generic attacker faces</h3>
+        <p>Calculated by treating every character as if it could be anything from the full character set used — uppercase, lowercase, digits, symbols. A generic brute-force tool makes no assumptions about how your password was built, so it must search the entire character space. This is the upper bound on difficulty.</p>
+      </div>
+
+      <div class="em-section">
+        <span class="em-tag effective">Effective entropy</span>
+        <h3>What an informed attacker faces</h3>
+        <p>Accounts for how the password was actually constructed. A pronounceable password uses consonant-vowel patterns that shrink the real search space — even if the characters look random. A passphrase draws from a known word list. An attacker who knows the generation method works against effective entropy, not theoretical.</p>
+      </div>
+
+      <hr class="em-divider">
+
+      <div class="em-section">
+        <h3>Which matters more?</h3>
+        <p>For most real-world threats, theoretical entropy is what counts — attackers use generic tools and don't know which generator you used. But effective entropy gives you an honest floor: if your generation method were ever known, how strong would your passwords still be?</p>
+        <p style="margin-top:8px;">Strength ratings (Weak / Moderate / Strong / Very strong) and minimum-strength thresholds in this tool are always based on <strong style="color:var(--blue);">effective entropy</strong> — the conservative, honest estimate.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="entropy-tip" id="entropyTip">
   <div class="tip-section-label">Effective Entropy</div>
@@ -1179,6 +1225,8 @@ function toggleGenerator(name, enabled) {
 // ── SETTINGS MODAL ────────────────────────────────────────────────────────────
 function openSettings() { renderWordListUI(); document.getElementById('settingsOverlay').classList.add('open'); }
 function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+function openEntropyInfo() { document.getElementById('entropyInfoOverlay').classList.add('open'); }
+function closeEntropyInfo() { document.getElementById('entropyInfoOverlay').classList.remove('open'); }
 
 // ── PASSWORD MODE ─────────────────────────────────────────────────────────────
 let _pwMode = 'random';
