@@ -56,12 +56,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .tab-page.active{display:block;}
 
 /* SECTION CARDS */
-.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;display:flex;align-items:stretch;min-height:0;overflow:hidden;}
+.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;position:relative;overflow:hidden;}
 .section-left{width:280px;flex-shrink:0;padding:20px 24px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:0;}
-.section-right{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.section-right{position:absolute;top:0;bottom:0;left:280px;right:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border);}
 @media(max-width:800px){
-  .section-card{flex-direction:column;}
+  .section-card{display:flex;flex-direction:column;position:static;}
   .section-left{width:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .section-right{position:static;border-left:none;min-height:240px;}
 }
 
 /* SEGMENTED CONTROL */
