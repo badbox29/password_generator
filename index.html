@@ -1341,24 +1341,17 @@ function syncWordsToFloor() {
   const randomSep = document.getElementById('pp-sep-random').checked;
   const caps      = document.getElementById('pp-caps').checked;
   const bitsPerWord = Math.log2(list.length);
-  // MAX_EXTRAS = 3 (hard ceiling from randInt(min(n,3)) + 1)
-  // Per injection: log2(18) char + log2(n) word choice + log2(avgWordLen+1) position
-  const avgWordLen    = list.reduce((sum, w) => sum + w.length, 0) / list.length;
-  const bitsPerExtra  = extras
-    ? Math.log2(EXTRAS_POOL_SIZE) + Math.log2(1) + Math.log2(avgWordLen + 1) // word choice added per-n below
-    : 0;
-  const capsBits = caps ? n * avgWordLen * Math.log2(2) : 0; // placeholder, recalced per-n
+  const avgWordLen  = list.reduce((sum, w) => sum + w.length, 0) / list.length;
 
   // Find lowest word count where MAX achievable entropy >= floor
   let minNeeded = _ppWordsUserPref;
   for (let n = _ppWordsUserPref; n <= 9; n++) {
-    const sepBits      = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
-    const capBits      = caps      ? n * avgWordLen * Math.log2(2) : 0;
-    // Max extras: 3 injections, each with char + word-choice + position bits
+    const sepBits       = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
+    const capBits       = caps      ? n * avgWordLen * Math.log2(2) : 0;
     const maxExtrasBits = extras
       ? 3 * (Math.log2(EXTRAS_POOL_SIZE) + Math.log2(n) + Math.log2(avgWordLen + 1))
       : 0;
-    const maxBits  = n * bitsPerWord + maxExtrasBits + sepBits + capBits;
+    const maxBits = n * bitsPerWord + maxExtrasBits + sepBits + capBits;
     if (maxBits >= floor) { minNeeded = n; break; }
     minNeeded = n + 1;
   }
