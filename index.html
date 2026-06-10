@@ -307,7 +307,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label class="gen-toggle clr-orange" id="tog-totp">
             <input type="checkbox" onchange="toggleGenerator('totp',this.checked)">
             <span class="gen-toggle-icon">⏱</span>
-            <div class="gen-toggle-info"><span class="gen-toggle-label">TOTP Secret</span><span class="gen-toggle-desc">Authenticator keys</span></div>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">TOTP Secrets</span><span class="gen-toggle-desc">Authenticator keys</span></div>
           </label>
         </div>
 
@@ -326,12 +326,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label class="gen-toggle clr-cyan" id="tog-webhook">
             <input type="checkbox" onchange="toggleGenerator('webhook',this.checked)">
             <span class="gen-toggle-icon">🔗</span>
-            <div class="gen-toggle-info"><span class="gen-toggle-label">Webhook Secret</span><span class="gen-toggle-desc">HMAC signing keys</span></div>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Webhook Secrets</span><span class="gen-toggle-desc">HMAC signing keys</span></div>
           </label>
           <label class="gen-toggle clr-cyan" id="tog-base64">
             <input type="checkbox" onchange="toggleGenerator('base64',this.checked)">
             <span class="gen-toggle-icon">📦</span>
-            <div class="gen-toggle-info"><span class="gen-toggle-label">Base64</span><span class="gen-toggle-desc">Encode / generate</span></div>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Base64 Encoder</span><span class="gen-toggle-desc">Encode / generate</span></div>
           </label>
         </div>
 
@@ -340,7 +340,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label class="gen-toggle clr-orange" id="tog-bip39">
             <input type="checkbox" onchange="toggleGenerator('bip39',this.checked)">
             <span class="gen-toggle-icon">🌱</span>
-            <div class="gen-toggle-info"><span class="gen-toggle-label">BIP-39 Mnemonic</span><span class="gen-toggle-desc">Seed phrases</span></div>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">BIP-39 Mnemonics</span><span class="gen-toggle-desc">Seed phrases</span></div>
           </label>
         </div>
       </div>
@@ -370,7 +370,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-blue">🔒</div>
-          <div class="card-title">Generate Password</div>
+          <div class="card-title">Passwords</div>
         </div>
         <div class="seg-ctrl" id="pw-mode-ctrl">
           <button class="seg-btn active" onclick="setPwMode('random')">Random</button>
@@ -445,7 +445,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-purple">📝</div>
-          <div class="card-title">Generate Passphrase</div>
+          <div class="card-title">Passphrases</div>
         </div>
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="pp-caps" checked> Random capitalization</label>
@@ -498,7 +498,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-green">🔢</div>
-          <div class="card-title">Generate PIN</div>
+          <div class="card-title">PINs</div>
         </div>
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="pin-spaces"> Group digits with spaces</label>
@@ -534,7 +534,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-purple">👤</div>
-          <div class="card-title">Generate Username</div>
+          <div class="card-title">Usernames</div>
         </div>
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="un-nums" checked> Append numbers</label>
@@ -583,7 +583,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-rose">🔑</div>
-          <div class="card-title">API Key / Token</div>
+          <div class="card-title">API Keys</div>
         </div>
         <div class="field">
           <label>Format</label>
@@ -663,7 +663,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-orange">⏱</div>
-          <div class="card-title">TOTP Secret</div>
+          <div class="card-title">TOTP Secrets</div>
         </div>
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="totp-spaces" checked> Group with spaces (for readability)</label>
@@ -683,7 +683,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       </div>
       <div class="section-right">
         <div class="output-header">
-          <span class="output-label">TOTP Secrets</span>
+          <span class="output-label">TOTP Secretss</span>
           <div class="output-actions">
             <span class="output-count" id="totp-count"></span>
             <button class="btn-ghost" id="totp-copy-all" onclick="copyAll('totp')" style="display:none;">Copy all</button>
@@ -705,7 +705,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-cyan">🔵</div>
-          <div class="card-title">UUID v4</div>
+          <div class="card-title">UUIDs</div>
         </div>
         <div class="checks-block">
           <label class="check-row"><input type="checkbox" id="uuid-upper"> Uppercase</label>
@@ -737,7 +737,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left" style="width:320px;">
         <div class="card-hd">
           <div class="card-icon ci-cyan">🪙</div>
-          <div class="card-title">JWT Generator</div>
+          <div class="card-title">JSON Web Tokens</div>
         </div>
         <div class="field">
           <label>Algorithm</label>
@@ -788,7 +788,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-cyan">🔗</div>
-          <div class="card-title">Webhook Secret</div>
+          <div class="card-title">Webhook Secrets</div>
         </div>
         <div class="field">
           <label>Format</label>
@@ -811,7 +811,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       </div>
       <div class="section-right">
         <div class="output-header">
-          <span class="output-label">Webhook Secrets</span>
+          <span class="output-label">Webhook Secretss</span>
           <div class="output-actions">
             <span class="output-count" id="wh-count"></span>
             <button class="btn-ghost" id="wh-copy-all" onclick="copyAll('wh')" style="display:none;">Copy all</button>
@@ -828,7 +828,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-cyan">📦</div>
-          <div class="card-title">Base64</div>
+          <div class="card-title">Base64 Encoder</div>
         </div>
         <div class="seg-ctrl" id="b64-mode-ctrl">
           <button class="seg-btn active" onclick="setB64Mode('encode')">Encode</button>
@@ -839,7 +839,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label style="margin-bottom:4px;">Input text</label>
             <textarea id="b64-input" class="b64-input" placeholder="Type or paste text to encode…"></textarea>
           </div>
-          <button class="btn-primary cyan" onclick="encodeBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
+          <button class="btn-primary cyan" onclick="encodeBase64 Encoder()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
         </div>
         <div id="b64-panel-generate" style="display:none">
           <div class="field">
@@ -850,12 +850,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label>Quantity <span class="val" id="b64-qty-val">10</span></label>
             <input type="range" id="b64-qty" min="1" max="45" value="10" oninput="document.getElementById('b64-qty-val').textContent=this.value">
           </div>
-          <button class="btn-primary cyan" onclick="generateBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
+          <button class="btn-primary cyan" onclick="generateBase64 Encoder()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
         </div>
       </div>
       <div class="section-right">
         <div class="output-header">
-          <span class="output-label" id="b64-output-label">Base64 Output</span>
+          <span class="output-label" id="b64-output-label">Base64 Encoder Output</span>
           <div class="output-actions">
             <button class="btn-ghost" id="b64-copy-all" onclick="copyAll('b64')" style="display:none;">Copy</button>
           </div>
@@ -876,7 +876,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="section-left">
         <div class="card-hd">
           <div class="card-icon ci-orange">🌱</div>
-          <div class="card-title">BIP-39 Mnemonic</div>
+          <div class="card-title">BIP-39 Mnemonics</div>
         </div>
         <div class="field">
           <label>Word count</label>
@@ -928,7 +928,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <button class="modal-close" onclick="closeEntropyInfo()">✕</button>
     </div>
     <div class="entropy-modal-body">
-      <p>Entropy measures how hard a password is to guess — expressed in bits, where each additional bit doubles the number of combinations an attacker must try. Higher bits means a larger search space.</p>
+      <p>Entropy measures how hard a password is to guess — expressed in bits, where each additional bit doubles the number of combinations an attacker must try. Higher bits mean a larger search space.</p>
 
       <hr class="em-divider">
 
@@ -1796,10 +1796,10 @@ function setB64Mode(mode) {
   document.getElementById('b64-panel-encode').style.display = mode === 'encode' ? '' : 'none';
   document.getElementById('b64-panel-generate').style.display = mode === 'generate' ? '' : 'none';
   document.querySelectorAll('#b64-mode-ctrl .seg-btn').forEach((b,i) => b.classList.toggle('active', i === (mode==='encode'?0:1)));
-  document.getElementById('b64-output-label').textContent = mode === 'encode' ? 'Encoded' : 'Base64 Output';
+  document.getElementById('b64-output-label').textContent = mode === 'encode' ? 'Encoded' : 'Base64 Encoder Output';
 }
 
-function encodeBase64() {
+function encodeBase64 Encoder() {
   const input = document.getElementById('b64-input').value;
   if (!input) { showToast('Enter text to encode'); return; }
   const encoded = btoa(unescape(encodeURIComponent(input)));
@@ -1814,7 +1814,7 @@ function encodeBase64() {
   window._lastB64 = [encoded];
 }
 
-function generateBase64() {
+function generateBase64 Encoder() {
   const bytes = parseInt(document.getElementById('b64-bytes').value);
   const qty   = parseInt(document.getElementById('b64-qty').value);
   const results = [];
