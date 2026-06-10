@@ -2032,7 +2032,7 @@ function rebuildWordListSelector() {
   const prev = sel.value; sel.innerHTML = '';
   const opt = (val, label) => { const o = document.createElement('option'); o.value = val; o.textContent = label; return o; };
 
-  if (window._noveltyMode && window._noveltyEnabled && window._noveltyLists.length > 0) {
+  if (window._noveltyMode && window._noveltyLists.length > 0) {
     // Novelty mode: show only novelty lists
     window._noveltyLists.forEach((lst, i) => sel.appendChild(opt('novelty-' + i, `${lst.name} (${lst.words.length.toLocaleString()})`)));
     if (window._noveltyLists.length > 1) {
