@@ -241,6 +241,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .wl-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:1px 2px;outline:none;transition:border-color .15s;min-width:0;}
 .wl-name-input:hover{border-bottom-color:var(--border-light);}
 .wl-name-input:focus{border-bottom-color:var(--blue);}
+/* SETTINGS MODAL WORD LIST TABS — notebook style */
+.wl-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
+.wl-tab-btn{padding:6px 16px;font-size:12px;font-weight:600;color:var(--text-muted);background:var(--bg-card2);border:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:6px 6px 0 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,background .15s;white-space:nowrap;}
+.wl-tab-btn:hover{color:var(--text-secondary);}
+.wl-tab-btn.active{background:var(--bg-input);color:var(--text-primary);border-bottom-color:var(--bg-input);}
+.wl-tab-panel{display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:0 6px 6px 6px;padding:14px;margin-bottom:4px;}
+.wl-tab-panel.active{display:block;}
 .wl-add-row{display:flex;gap:8px;align-items:center;}
 .wl-select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:12px;padding:4px 8px;cursor:pointer;outline:none;transition:border-color .15s;}
 .wl-select:focus{border-color:var(--purple);}
@@ -364,22 +371,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
         <!-- NOVELTY TAB -->
         <div class="wl-tab-panel" id="wl-tab-novelty">
-          <div class="wl-novelty-enable" style="margin-bottom:12px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-              <input type="checkbox" id="novelty-enabled" onchange="toggleNoveltyEnabled(this.checked)" style="accent-color:var(--purple);width:14px;height:14px;">
-              Enable novelty word lists
-            </label>
-          </div>
-          <div id="novelty-manager" style="display:none;">
-            <div class="wl-list" id="wl-novelty-list"></div>
-            <div class="wl-add-row">
-              <button class="btn-ghost" onclick="document.getElementById('wl-novelty-file-input').click()">+ Add list from .txt file</button>
-              <input type="file" id="wl-novelty-file-input" accept=".txt" style="display:none" onchange="loadNoveltyListFile(this)">
-              <span id="wl-novelty-load-status" style="font-size:12px;color:var(--text-muted);"></span>
-            </div>
-          </div>
-          <div id="novelty-disabled-msg" style="font-size:12px;color:var(--text-muted);padding:8px 0;">
-            Enable novelty word lists to add themed lists for use in passphrase generation.
+          <div class="wl-list" id="wl-novelty-list"></div>
+          <div class="wl-add-row">
+            <button class="btn-ghost" onclick="document.getElementById('wl-novelty-file-input').click()">+ Add list from .txt file</button>
+            <input type="file" id="wl-novelty-file-input" accept=".txt" style="display:none" onchange="loadNoveltyListFile(this)">
+            <span id="wl-novelty-load-status" style="font-size:12px;color:var(--text-muted);"></span>
           </div>
         </div>
       </div>
@@ -1954,27 +1950,22 @@ function switchWlTab(tab) {
   });
 }
 
-function toggleNoveltyEnabled(enabled) {
-  window._noveltyEnabled = enabled;
-  document.getElementById('novelty-manager').style.display     = enabled ? '' : 'none';
-  document.getElementById('novelty-disabled-msg').style.display = enabled ? 'none' : '';
-  const toggleLabel = document.getElementById('novelty-toggle-label');
-  if (toggleLabel) toggleLabel.style.display = enabled ? 'flex' : 'none';
-  if (!enabled) {
-    // turn off novelty mode on the card if feature is disabled
+function toggleNoveltyMode(on) {
+  window._noveltyMode = on;
+  rebuildWordListSelector();
+  saveSettings();
+}
+
+function updateNoveltyToggleVisibility() {
+  const label = document.getElementById('novelty-toggle-label');
+  if (label) label.style.display = window._noveltyLists.length > 0 ? 'flex' : 'none';
+  // if novelty mode is on but lists are gone, turn it off
+  if (window._noveltyMode && window._noveltyLists.length === 0) {
     window._noveltyMode = false;
     const cb = document.getElementById('pp-novelty-mode');
     if (cb) cb.checked = false;
     rebuildWordListSelector();
   }
-  renderNoveltyListUI();
-  saveSettings();
-}
-
-function toggleNoveltyMode(on) {
-  window._noveltyMode = on;
-  rebuildWordListSelector();
-  saveSettings();
 }
 
 function renderNoveltyListUI() {
@@ -2006,6 +1997,7 @@ function removeNoveltyList(idx) {
   window._noveltyLists.splice(idx, 1);
   renderNoveltyListUI();
   rebuildWordListSelector();
+  updateNoveltyToggleVisibility();
   saveSettings();
 }
 
@@ -2016,7 +2008,7 @@ function loadNoveltyListFile(input) {
   reader.onload = e => {
     const words = e.target.result.split(/\r?\n/).map(w => w.trim()).filter(w => w.length > 0);
     if (words.length < 20) { status.textContent = '✗ Too few words (min 20)'; setTimeout(() => status.textContent = '', 3000); }
-    else { window._noveltyLists.push({ name: file.name.replace(/\.txt$/i,''), words }); renderNoveltyListUI(); rebuildWordListSelector(); saveSettings(); status.textContent = `✓ ${words.length.toLocaleString()} words loaded`; setTimeout(() => status.textContent = '', 3000); }
+    else { window._noveltyLists.push({ name: file.name.replace(/\.txt$/i,''), words }); renderNoveltyListUI(); rebuildWordListSelector(); updateNoveltyToggleVisibility(); saveSettings(); status.textContent = `✓ ${words.length.toLocaleString()} words loaded`; setTimeout(() => status.textContent = '', 3000); }
     input.value = '';
   };
   reader.readAsText(file);
@@ -2181,16 +2173,9 @@ function applySettings(s) {
   if (s.noveltyLists && Array.isArray(s.noveltyLists)) window._noveltyLists = s.noveltyLists;
   window._noveltyEnabled = s.noveltyEnabled || false;
   window._noveltyMode    = s.noveltyMode    || false;
-  const novCb = document.getElementById('novelty-enabled');
-  if (novCb) novCb.checked = window._noveltyEnabled;
-  const novManager = document.getElementById('novelty-manager');
-  if (novManager) novManager.style.display = window._noveltyEnabled ? '' : 'none';
-  const novMsg = document.getElementById('novelty-disabled-msg');
-  if (novMsg) novMsg.style.display = window._noveltyEnabled ? 'none' : '';
-  const novToggleLabel = document.getElementById('novelty-toggle-label');
-  if (novToggleLabel) novToggleLabel.style.display = window._noveltyEnabled ? 'flex' : 'none';
   const novModeCb = document.getElementById('pp-novelty-mode');
   if (novModeCb) novModeCb.checked = window._noveltyMode;
+  updateNoveltyToggleVisibility();
   rebuildWordListSelector();
   if (s.ppWordlist) {
     const sel = document.getElementById('pp-wordlist');
@@ -2232,9 +2217,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved   = loadSettings();
   const merged  = migrateSettings(saved);
   applySettings(merged);
-  // Immediately re-save under the stable key so legacy keys are superseded
   saveSettings();
   rebuildTabBar();
+  updateNoveltyToggleVisibility();
   document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
     .forEach(el => el.addEventListener('change', saveSettings));
 });
