@@ -973,13 +973,20 @@ function calcEntropyForPassword(pw, poolSize) {
 
 const EXTRAS_POOL_SIZE  = 18;  // !@#$%^&* (8) + 0-9 (10)
 const RANDOM_SEP_COUNT  = 13;  // length of RANDOM_SEPS array
-// Full per-phrase entropy: base + extras + random separator + random caps.
+// Full per-phrase entropy: base + extras (char + word choice + position) + separator + caps.
 // All params passed from generator with exact values — no string inference.
-function calcEntropyForPassphrase(wordCount, listSize, extrasCount, alphaCharCount, randomSep, randomCaps) {
+// extrasData: array of {wordLen} for each injection, for accurate position bits
+function calcEntropyForPassphrase(wordCount, listSize, extrasData, alphaCharCount, randomSep, randomCaps) {
   let bits = wordCount * Math.log2(listSize);
-  if (extrasCount > 0)   bits += extrasCount   * Math.log2(EXTRAS_POOL_SIZE);
-  if (randomSep)         bits += (wordCount - 1) * Math.log2(RANDOM_SEP_COUNT);
-  if (randomCaps)        bits += alphaCharCount  * Math.log2(2); // 1 bit per independently-randomized alpha char
+  // Each injection: log2(18) for char choice + log2(wordCount) for word choice
+  //                 + log2(wordLen + 1) for insertion position
+  for (const {wordLen} of extrasData) {
+    bits += Math.log2(EXTRAS_POOL_SIZE);          // which char
+    bits += Math.log2(wordCount);                 // which word
+    bits += Math.log2(wordLen + 1);               // where in word
+  }
+  if (randomSep)  bits += (wordCount - 1) * Math.log2(RANDOM_SEP_COUNT);
+  if (randomCaps) bits += alphaCharCount  * Math.log2(2);
   return Math.round(bits);
 }
 
@@ -996,11 +1003,13 @@ function calcTheoreticalEntropy(str) {
 
 // ── TOOLTIP ───────────────────────────────────────────────────────────────────
 const _tip = document.getElementById('entropyTip');
-// showTip(el, effectiveBits, str) — str used to compute theoretical entropy
-function showTip(el, effectiveBits, str) {
+// showTip(el, effectiveBits, theoreticalBits)
+// theoreticalBits: length × log2(configured or observed pool) — what generic attacker faces
+// effectiveBits:   structural entropy — what targeted attacker faces
+function showTip(el, effectiveBits, theoreticalBits) {
   const color  = effectiveBits < 50 ? '#ef4444' : effectiveBits < 80 ? '#f59e0b' : effectiveBits < 100 ? '#22c55e' : '#06b6d4';
   const label  = effectiveBits < 50 ? 'Weak' : effectiveBits < 80 ? 'Moderate' : effectiveBits < 100 ? 'Strong' : 'Very strong';
-  const theoBits = str ? calcTheoreticalEntropy(str) : effectiveBits;
+  const theoBits = theoreticalBits !== undefined ? theoreticalBits : effectiveBits;
   _tip.querySelector('#tip-theoretical').textContent = theoBits + ' bits';
   _tip.querySelector('#tip-effective').textContent   = effectiveBits + ' bits';
   _tip.querySelector('#tip-effective').style.color   = color;
@@ -1017,7 +1026,7 @@ function showTip(el, effectiveBits, str) {
 function hideTip() { _tip.classList.remove('visible'); }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function renderItems(outputId, items, colorClass, entropyFn) {
+function renderItems(outputId, items, colorClass, entropyFn, theoreticalFn) {
   const el = document.getElementById(outputId);
   el.innerHTML = '';
   if (!items || !items.length) {
@@ -1033,8 +1042,9 @@ function renderItems(outputId, items, colorClass, entropyFn) {
       navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); });
     });
     if (entropyFn) {
-      const bits = entropyFn(text);
-      row.addEventListener('mouseenter', () => showTip(row, bits, text));
+      const effectiveBits   = entropyFn(text);
+      const theoreticalBits = theoreticalFn ? theoreticalFn(text) : calcTheoreticalEntropy(text);
+      row.addEventListener('mouseenter', () => showTip(row, effectiveBits, theoreticalBits));
       row.addEventListener('mouseleave', hideTip);
     }
     row.appendChild(span); row.appendChild(btn);
@@ -1239,17 +1249,20 @@ function generatePassword() {
     // Each syllable = 1 of (consonants×vowels) combos
     const sylPool  = CONSONANTS.length * VOWELS.length;
     const numBits  = useNums ? Math.log2(90) : 0; // randInt(90)+10
+    // Caps: true 50/50 per consonant = 1 bit per syllable (not 0.811 from 25/75)
+    const capBits  = useCaps ? sylCount * Math.log2(2) : 0;
     makeOne = () => {
       let p = '';
       for (let s = 0; s < sylCount; s++) {
-        let cv = CONSONANTS[randInt(CONSONANTS.length)] + VOWELS[randInt(VOWELS.length)];
-        if (useCaps && randInt(4) === 0) cv = cv[0].toUpperCase() + cv[1];
-        p += cv;
+        let con = CONSONANTS[randInt(CONSONANTS.length)];
+        const vow = VOWELS[randInt(VOWELS.length)];
+        if (useCaps && randInt(2) === 0) con = con.toUpperCase(); // true 50/50
+        p += con + vow;
       }
       if (useNums) p += (randInt(90) + 10).toString();
       return p;
     };
-    entropyFn = (_text) => Math.round(sylCount * Math.log2(sylPool) + numBits);
+    entropyFn = (_text) => Math.round(sylCount * Math.log2(sylPool) + numBits + capBits);
   }
 
   const results   = [];
@@ -1267,7 +1280,10 @@ function generatePassword() {
 
   if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
   window._lastPW = results;
-  renderItems('pw-output', results, 'blue', entropyFn);
+  // For random mode, theoretical = effective (both use configured pool).
+  // For memorable/pronounceable, theoretical uses observed charset (calcTheoreticalEntropy default).
+  const theoreticalFn = _pwMode === 'random' ? entropyFn : null;
+  renderItems('pw-output', results, 'blue', entropyFn, theoreticalFn);
   document.getElementById('pw-count').textContent = results.length + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
   saveSettings();
@@ -1326,16 +1342,23 @@ function syncWordsToFloor() {
   const caps      = document.getElementById('pp-caps').checked;
   const bitsPerWord = Math.log2(list.length);
   // MAX_EXTRAS = 3 (hard ceiling from randInt(min(n,3)) + 1)
-  const maxExtrasBits = extras ? 3 * Math.log2(EXTRAS_POOL_SIZE) : 0;
-  // Average word length from active list for caps estimate
-  const avgWordLen = list.reduce((sum, w) => sum + w.length, 0) / list.length;
+  // Per injection: log2(18) char + log2(n) word choice + log2(avgWordLen+1) position
+  const avgWordLen    = list.reduce((sum, w) => sum + w.length, 0) / list.length;
+  const bitsPerExtra  = extras
+    ? Math.log2(EXTRAS_POOL_SIZE) + Math.log2(1) + Math.log2(avgWordLen + 1) // word choice added per-n below
+    : 0;
+  const capsBits = caps ? n * avgWordLen * Math.log2(2) : 0; // placeholder, recalced per-n
 
   // Find lowest word count where MAX achievable entropy >= floor
   let minNeeded = _ppWordsUserPref;
   for (let n = _ppWordsUserPref; n <= 9; n++) {
-    const sepBits  = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
-    const capsBits = caps      ? n * avgWordLen * Math.log2(2) : 0;
-    const maxBits  = n * bitsPerWord + maxExtrasBits + sepBits + capsBits;
+    const sepBits      = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
+    const capBits      = caps      ? n * avgWordLen * Math.log2(2) : 0;
+    // Max extras: 3 injections, each with char + word-choice + position bits
+    const maxExtrasBits = extras
+      ? 3 * (Math.log2(EXTRAS_POOL_SIZE) + Math.log2(n) + Math.log2(avgWordLen + 1))
+      : 0;
+    const maxBits  = n * bitsPerWord + maxExtrasBits + sepBits + capBits;
     if (maxBits >= floor) { minNeeded = n; break; }
     minNeeded = n + 1;
   }
@@ -1389,15 +1412,17 @@ function generatePassphrase() {
       if (caps) word = word.split('').map(c => randInt(2) ? c.toUpperCase() : c.toLowerCase()).join('');
       words.push(word);
     }
-    let extrasCount = 0;
+    // extrasData: array of {wordLen} per injection — for accurate position entropy
+    const extrasData = [];
     if (extras) {
       const count = randInt(Math.min(numWords, 3)) + 1;
-      extrasCount = count;
       for (let i = 0; i < count; i++) {
-        const idx = randInt(words.length);
-        const ch  = randInt(2) ? NUMS[randInt(NUMS.length)] : SPECIAL[randInt(SPECIAL.length)];
-        const pos = randInt(words[idx].length + 1);
-        words[idx] = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
+        const idx     = randInt(words.length);
+        const wordLen = words[idx].replace(/[^a-zA-Z]/g, '').length; // alpha length before inject
+        const ch      = randInt(2) ? NUMS[randInt(NUMS.length)] : SPECIAL[randInt(SPECIAL.length)];
+        const pos     = randInt(words[idx].length + 1);
+        words[idx]    = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
+        extrasData.push({ wordLen });
       }
     }
     // Count alpha chars across all words (after injection) for caps entropy
@@ -1405,15 +1430,15 @@ function generatePassphrase() {
     const text = isRandom
       ? words.reduce((acc, word, i) => i === 0 ? word : acc + RANDOM_SEPS[randInt(RANDOM_SEPS.length)] + word)
       : words.join(getActiveSep());
-    return { text, extrasCount, alphaCharCount };
+    return { text, extrasData, alphaCharCount };
   }
 
   const phrases     = []; // store {text, bits} for tooltip
   const DRY_LIMIT   = 2000;
   let   dryStreak   = 0;
   while (phrases.length < qty && dryStreak < DRY_LIMIT) {
-    const { text, extrasCount, alphaCharCount } = makePhrase();
-    const bits = calcEntropyForPassphrase(numWords, list.length, extrasCount, alphaCharCount, isRandom, caps);
+    const { text, extrasData, alphaCharCount } = makePhrase();
+    const bits = calcEntropyForPassphrase(numWords, list.length, extrasData, alphaCharCount, isRandom, caps);
     if (floor === 0 || bits >= floor) {
       phrases.push({ text, bits });
       dryStreak = 0;
@@ -1436,7 +1461,8 @@ function generatePassphrase() {
     const span = document.createElement('span'); span.className = 'item-text purple'; span.textContent = text;
     const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
     btn.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
-    row.addEventListener('mouseenter', () => showTip(row, bits, text));
+    const theoBits = calcTheoreticalEntropy(text);
+    row.addEventListener('mouseenter', () => showTip(row, bits, theoBits));
     row.addEventListener('mouseleave', hideTip);
     row.appendChild(span); row.appendChild(btn);
     el.appendChild(row);
