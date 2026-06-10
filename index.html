@@ -957,13 +957,15 @@ function calcEntropyForPassword(pw, poolSize) {
   return poolSize > 0 ? Math.round(pw.length * Math.log2(poolSize)) : 0;
 }
 
-// Passphrase: takes explicit wordCount, listSize, extrasCount rather than
-// inferring from the string (which over-counts when chars are injected mid-word).
-// extrasPoolSize = 18 (8 special + 10 digits) — the actual injection pool.
-const EXTRAS_POOL_SIZE = 18; // !@#$%^&* (8) + 0-9 (10)
-function calcEntropyForPassphrase(wordCount, listSize, extrasCount) {
+const EXTRAS_POOL_SIZE  = 18;  // !@#$%^&* (8) + 0-9 (10)
+const RANDOM_SEP_COUNT  = 13;  // length of RANDOM_SEPS array
+// Full per-phrase entropy: base + extras + random separator + random caps.
+// All params passed from generator with exact values — no string inference.
+function calcEntropyForPassphrase(wordCount, listSize, extrasCount, alphaCharCount, randomSep, randomCaps) {
   let bits = wordCount * Math.log2(listSize);
-  if (extrasCount > 0) bits += extrasCount * Math.log2(EXTRAS_POOL_SIZE);
+  if (extrasCount > 0)   bits += extrasCount   * Math.log2(EXTRAS_POOL_SIZE);
+  if (randomSep)         bits += (wordCount - 1) * Math.log2(RANDOM_SEP_COUNT);
+  if (randomCaps)        bits += alphaCharCount  * Math.log2(2); // 1 bit per independently-randomized alpha char
   return Math.round(bits);
 }
 
@@ -1290,14 +1292,22 @@ function syncWordsToFloor() {
     label.textContent = _ppWordsUserPref;
     return;
   }
-  const extras      = document.getElementById('pp-extras').checked;
+  const extras    = document.getElementById('pp-extras').checked;
+  const randomSep = document.getElementById('pp-sep-random').checked;
+  const caps      = document.getElementById('pp-caps').checked;
   const bitsPerWord = Math.log2(list.length);
-  // High-side average: ~2.5 injected chars from actual pool of 18 (8 special + 10 digits)
-  const extrasBits  = extras ? 2.5 * Math.log2(EXTRAS_POOL_SIZE) : 0;
-  // Find lowest word count where HIGH-SIDE AVERAGE entropy >= floor
+  // MAX_EXTRAS = 3 (hard ceiling from randInt(min(n,3)) + 1)
+  const maxExtrasBits = extras ? 3 * Math.log2(EXTRAS_POOL_SIZE) : 0;
+  // Average word length from active list for caps estimate
+  const avgWordLen = list.reduce((sum, w) => sum + w.length, 0) / list.length;
+
+  // Find lowest word count where MAX achievable entropy >= floor
   let minNeeded = _ppWordsUserPref;
   for (let n = _ppWordsUserPref; n <= 9; n++) {
-    if (n * bitsPerWord + extrasBits >= floor) { minNeeded = n; break; }
+    const sepBits  = randomSep ? (n - 1) * Math.log2(RANDOM_SEP_COUNT) : 0;
+    const capsBits = caps      ? n * avgWordLen * Math.log2(2) : 0;
+    const maxBits  = n * bitsPerWord + maxExtrasBits + sepBits + capsBits;
+    if (maxBits >= floor) { minNeeded = n; break; }
     minNeeded = n + 1;
   }
   const effective   = Math.min(9, Math.max(_ppWordsUserPref, minNeeded));
@@ -1342,7 +1352,7 @@ function generatePassphrase() {
   const list     = getActiveWordList();
   const SPECIAL  = '!@#$%^&*'; const NUMS = '0123456789';
 
-  // Returns {text, extrasCount} so entropy calc gets exact injection count
+  // Returns {text, extrasCount, alphaCharCount} so entropy is exact per phrase
   function makePhrase() {
     let words = [];
     for (let w = 0; w < numWords; w++) {
@@ -1361,18 +1371,20 @@ function generatePassphrase() {
         words[idx] = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
       }
     }
+    // Count alpha chars across all words (after injection) for caps entropy
+    const alphaCharCount = words.join('').replace(/[^a-zA-Z]/g, '').length;
     const text = isRandom
       ? words.reduce((acc, word, i) => i === 0 ? word : acc + RANDOM_SEPS[randInt(RANDOM_SEPS.length)] + word)
       : words.join(getActiveSep());
-    return { text, extrasCount };
+    return { text, extrasCount, alphaCharCount };
   }
 
   const phrases     = []; // store {text, bits} for tooltip
   const DRY_LIMIT   = 2000;
   let   dryStreak   = 0;
   while (phrases.length < qty && dryStreak < DRY_LIMIT) {
-    const { text, extrasCount } = makePhrase();
-    const bits = calcEntropyForPassphrase(numWords, list.length, extrasCount);
+    const { text, extrasCount, alphaCharCount } = makePhrase();
+    const bits = calcEntropyForPassphrase(numWords, list.length, extrasCount, alphaCharCount, isRandom, caps);
     if (floor === 0 || bits >= floor) {
       phrases.push({ text, bits });
       dryStreak = 0;
