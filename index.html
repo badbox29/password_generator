@@ -40,10 +40,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .tab-btn{padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s;white-space:nowrap;}
 .tab-btn:hover{color:var(--text-secondary);}
 .tab-btn.active{color:var(--text-primary);border-bottom-color:var(--blue);}
+/* when tabs are showing, the wrap needs no extra top gap — tabs provide the separation */
+.wrap.tabs-showing{padding-top:16px;}
 
 /* LAYOUT */
-.wrap{max-width:1000px;margin:0 auto;padding:40px 40px 60px;}
-@media(max-width:800px){.wrap{padding:20px 20px 60px;}.tabs-inner{padding:0 20px;}}
+.wrap{max-width:1000px;margin:0 auto;padding:16px 40px 60px;}
+@media(max-width:800px){.wrap{padding:12px 20px 60px;}.tabs-inner{padding:0 20px;}}
 
 /* TAB PAGES */
 .tab-page{display:none;}
@@ -1037,6 +1039,7 @@ function rebuildTabBar() {
   const inner = document.getElementById('tabsInner');
   const showTabs = activeTabs.length > 1;
   bar.classList.toggle('visible', showTabs);
+  document.querySelector('.wrap').classList.toggle('tabs-showing', showTabs);
   inner.innerHTML = '';
   if (!showTabs) {
     // ensure general tab is active and visible
