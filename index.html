@@ -164,6 +164,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .entropy-floor-val.moderate{color:#f59e0b;}
 .entropy-floor-val.strong{color:#22c55e;}
 .entropy-floor-val.vstrong{color:#06b6d4;}
+.entropy-floor-strength{font-size:11px;font-weight:600;transition:color .2s;}
+.entropy-floor-strength.weak{color:#ef4444;}
+.entropy-floor-strength.moderate{color:#f59e0b;}
+.entropy-floor-strength.strong{color:#22c55e;}
+.entropy-floor-strength.vstrong{color:#06b6d4;}
 .entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:8px 12px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:160px;transform:translateX(-50%);}
 .entropy-tip.visible{display:block;}
 .tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
@@ -390,8 +395,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val" id="pw-floor-val">0 bits</span></label>
-          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val'); syncLengthToFloor();">
+          <label>Min entropy <span class="val entropy-floor-val zero" id="pw-floor-val">none</span></label>
+          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val','pw-floor-strength'); syncLengthToFloor();">
+          <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pw-floor-strength"></span></div>
         </div>
         <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
@@ -442,8 +448,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val" id="pp-floor-val">0 bits</span></label>
-          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val'); syncWordsToFloor();">
+          <label>Min entropy <span class="val entropy-floor-val zero" id="pp-floor-val">none</span></label>
+          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val','pp-floor-strength'); syncWordsToFloor();">
+          <div style="text-align:right;margin-top:2px;min-height:16px;"><span class="entropy-floor-strength" id="pp-floor-strength"></span></div>
         </div>
         <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
@@ -921,11 +928,17 @@ function entropyClass(bits) {
   if (bits < 100) return 'strong';
   return 'vstrong';
 }
-function updateFloorLabel(sliderId, labelId) {
-  const bits = parseInt(document.getElementById(sliderId).value);
-  const el   = document.getElementById(labelId);
-  el.textContent = bits === 0 ? 'none' : bits + ' bits';
-  el.className   = 'val entropy-floor-val ' + entropyClass(bits);
+const ENTROPY_LABELS = { zero:'', weak:'Weak', moderate:'Moderate', strong:'Strong', vstrong:'Very strong' };
+function updateFloorLabel(sliderId, valId, strengthId) {
+  const bits   = parseInt(document.getElementById(sliderId).value);
+  const cls    = entropyClass(bits);
+  const valEl  = document.getElementById(valId);
+  valEl.textContent = bits === 0 ? 'none' : bits + ' bits';
+  valEl.className   = 'val entropy-floor-val ' + cls;
+  if (strengthId) {
+    const strEl = document.getElementById(strengthId);
+    if (strEl) { strEl.textContent = ENTROPY_LABELS[cls]; strEl.className = 'entropy-floor-strength ' + cls; }
+  }
   saveSettings();
 }
 function calcEntropyForPassword(pw) {
@@ -1824,7 +1837,7 @@ function applySettings(s) {
   chk('pw-nums',    s.pwNums);    chk('pw-special', s.pwSpecial);
   chk('pw-noambig', s.pwNoambig);
   if (s.pwMode) setPwMode(s.pwMode);
-  if (s.pwFloor !== undefined) { document.getElementById('pw-floor').value = s.pwFloor; updateFloorLabel('pw-floor','pw-floor-val'); }
+  if (s.pwFloor !== undefined) { document.getElementById('pw-floor').value = s.pwFloor; updateFloorLabel('pw-floor','pw-floor-val','pw-floor-strength'); }
 
   set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
   if (s.ppWords !== undefined) _ppWordsUserPref = parseInt(s.ppWords);
@@ -1832,7 +1845,7 @@ function applySettings(s) {
   chk('pp-caps',   s.ppCaps);     chk('pp-extras', s.ppExtras);
   set('pp-sep', s.ppSep !== undefined ? s.ppSep : '-');
   if (s.ppSepRandom) { chk('pp-sep-random', true); toggleRandomSep(true); }
-  if (s.ppFloor !== undefined) { document.getElementById('pp-floor').value = s.ppFloor; updateFloorLabel('pp-floor','pp-floor-val'); }
+  if (s.ppFloor !== undefined) { document.getElementById('pp-floor').value = s.ppFloor; updateFloorLabel('pp-floor','pp-floor-val','pp-floor-strength'); }
 
   set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
   set('pin-qty',    s.pinQty);    lbl('pin-qty-val',  s.pinQty);
