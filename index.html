@@ -1621,79 +1621,153 @@ function rebuildWordListSelector() {
 }
 
 // ── SETTINGS PERSISTENCE ──────────────────────────────────────────────────────
-const LS_KEY = 'pwgen_settings_v3';
+// ── SETTINGS PERSISTENCE ─────────────────────────────────────────────────────
+// Single stable key — never changes. Migration handles schema evolution.
+const LS_KEY = 'pwgen_settings';
+
+// Default values for every setting — used as fallback during migration
+const SETTINGS_DEFAULTS = {
+  pwLength: '26', pwQty: '15',
+  pwUpper: true, pwLower: true, pwNums: true, pwSpecial: true, pwNoambig: false,
+  pwMode: 'random',
+  ppWords: '4', ppQty: '15',
+  ppCaps: true, ppExtras: true, ppSep: '-', ppSepRandom: false, ppWordlist: 'builtin',
+  pinLength: '6', pinQty: '15', pinSpaces: false,
+  darkMode: true,
+  generators: GENERATOR_DEFAULTS,
+  customLists: [],
+};
+
+// Merge saved data with defaults — any missing key gets its default value.
+// Existing values (including customLists and generator states) are preserved.
+function migrateSettings(saved) {
+  if (!saved) return { ...SETTINGS_DEFAULTS };
+  const result = { ...SETTINGS_DEFAULTS };
+  // Scalar settings — use saved value if present
+  for (const key of Object.keys(SETTINGS_DEFAULTS)) {
+    if (key === 'generators') continue;
+    if (key === 'customLists') continue;
+    if (saved[key] !== undefined) result[key] = saved[key];
+  }
+  // Custom lists — always preserve
+  if (saved.customLists && Array.isArray(saved.customLists)) {
+    result.customLists = saved.customLists;
+  }
+  // Generator states — merge saved with defaults so new generators default to off
+  // without wiping existing enabled states
+  result.generators = { ...GENERATOR_DEFAULTS };
+  if (saved.generators) {
+    for (const id of GENERATOR_IDS) {
+      if (saved.generators[id] !== undefined) result.generators[id] = saved.generators[id];
+    }
+  }
+  return result;
+}
+
 function collectSettings() {
   const gens = {};
-  GENERATOR_IDS.forEach(id => { const t = document.getElementById('tog-'+id); gens[id] = t ? t.querySelector('input').checked : GENERATOR_DEFAULTS[id]; });
+  GENERATOR_IDS.forEach(id => {
+    const t = document.getElementById('tog-' + id);
+    gens[id] = t ? t.querySelector('input').checked : GENERATOR_DEFAULTS[id];
+  });
   return {
-    pwLength: document.getElementById('pw-length').value,
-    pwQty: document.getElementById('pw-qty').value,
-    pwUpper: document.getElementById('pw-upper').checked,
-    pwLower: document.getElementById('pw-lower').checked,
-    pwNums: document.getElementById('pw-nums').checked,
-    pwSpecial: document.getElementById('pw-special').checked,
-    pwNoambig: document.getElementById('pw-noambig').checked,
-    pwMode: _pwMode,
-    ppWords: document.getElementById('pp-words').value,
-    ppQty: document.getElementById('pp-qty').value,
-    ppCaps: document.getElementById('pp-caps').checked,
-    ppExtras: document.getElementById('pp-extras').checked,
-    ppSep: document.getElementById('pp-sep').value,
+    pwLength:   document.getElementById('pw-length').value,
+    pwQty:      document.getElementById('pw-qty').value,
+    pwUpper:    document.getElementById('pw-upper').checked,
+    pwLower:    document.getElementById('pw-lower').checked,
+    pwNums:     document.getElementById('pw-nums').checked,
+    pwSpecial:  document.getElementById('pw-special').checked,
+    pwNoambig:  document.getElementById('pw-noambig').checked,
+    pwMode:     _pwMode,
+    ppWords:    document.getElementById('pp-words').value,
+    ppQty:      document.getElementById('pp-qty').value,
+    ppCaps:     document.getElementById('pp-caps').checked,
+    ppExtras:   document.getElementById('pp-extras').checked,
+    ppSep:      document.getElementById('pp-sep').value,
     ppSepRandom: document.getElementById('pp-sep-random').checked,
     ppWordlist: document.getElementById('pp-wordlist') ? document.getElementById('pp-wordlist').value : 'builtin',
-    pinLength: document.getElementById('pin-length').value,
-    pinQty: document.getElementById('pin-qty').value,
-    pinSpaces: document.getElementById('pin-spaces').checked,
-    darkMode: !document.body.classList.contains('light'),
+    pinLength:  document.getElementById('pin-length').value,
+    pinQty:     document.getElementById('pin-qty').value,
+    pinSpaces:  document.getElementById('pin-spaces').checked,
+    darkMode:   !document.body.classList.contains('light'),
     generators: gens,
     customLists: window._customLists.map(l => ({ name: l.name, words: l.words })),
   };
 }
+
 function applySettings(s) {
   if (!s) return;
-  const set = (id, v) => { const el = document.getElementById(id); if (el && v!==undefined) el.value = v; };
-  const chk = (id, v) => { const el = document.getElementById(id); if (el && v!==undefined) el.checked = v; };
-  const lbl = (id, v) => { const el = document.getElementById(id); if (el && v!==undefined) el.textContent = v; };
-  set('pw-length', s.pwLength); lbl('pw-len-val', s.pwLength);
-  set('pw-qty', s.pwQty); lbl('pw-qty-val', s.pwQty);
-  chk('pw-upper', s.pwUpper); chk('pw-lower', s.pwLower); chk('pw-nums', s.pwNums);
-  chk('pw-special', s.pwSpecial); chk('pw-noambig', s.pwNoambig);
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
+  const chk = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.checked = v; };
+  const lbl = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.textContent = v; };
+
+  set('pw-length', s.pwLength);   lbl('pw-len-val', s.pwLength);
+  set('pw-qty',    s.pwQty);      lbl('pw-qty-val', s.pwQty);
+  chk('pw-upper',   s.pwUpper);   chk('pw-lower',  s.pwLower);
+  chk('pw-nums',    s.pwNums);    chk('pw-special', s.pwSpecial);
+  chk('pw-noambig', s.pwNoambig);
   if (s.pwMode) setPwMode(s.pwMode);
-  set('pp-words', s.ppWords); lbl('pp-words-val', s.ppWords);
-  set('pp-qty', s.ppQty); lbl('pp-qty-val', s.ppQty);
-  chk('pp-caps', s.ppCaps); chk('pp-extras', s.ppExtras);
+
+  set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
+  set('pp-qty',   s.ppQty);       lbl('pp-qty-val',   s.ppQty);
+  chk('pp-caps',   s.ppCaps);     chk('pp-extras', s.ppExtras);
   set('pp-sep', s.ppSep !== undefined ? s.ppSep : '-');
   if (s.ppSepRandom) { chk('pp-sep-random', true); toggleRandomSep(true); }
+
   set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
-  set('pin-qty', s.pinQty); lbl('pin-qty-val', s.pinQty);
+  set('pin-qty',    s.pinQty);    lbl('pin-qty-val',  s.pinQty);
   chk('pin-spaces', s.pinSpaces);
-  if (s.darkMode === false) { document.body.classList.add('light'); document.getElementById('themeBtn').textContent = '🌙 Dark'; }
-  if (s.customLists) window._customLists = s.customLists;
-  rebuildWordListSelector();
-  if (s.ppWordlist) { const sel = document.getElementById('pp-wordlist'); if (sel && [...sel.options].some(o => o.value === s.ppWordlist)) sel.value = s.ppWordlist; }
-  if (s.generators) {
-    GENERATOR_IDS.forEach(id => {
-      const enabled = s.generators[id] !== undefined ? s.generators[id] : GENERATOR_DEFAULTS[id];
-      const tog = document.getElementById('tog-'+id);
-      if (tog) { tog.querySelector('input').checked = enabled; tog.classList.toggle('active', enabled); }
-      const card = document.getElementById('section-'+id);
-      if (card) card.style.display = enabled ? '' : 'none';
-    });
-  } else {
-    GENERATOR_IDS.forEach(id => {
-      const enabled = GENERATOR_DEFAULTS[id];
-      const card = document.getElementById('section-'+id); if (card) card.style.display = enabled ? '' : 'none';
-      const tog = document.getElementById('tog-'+id); if (tog) { tog.querySelector('input').checked = enabled; tog.classList.toggle('active', enabled); }
-    });
+
+  if (s.darkMode === false) {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙 Dark';
   }
+
+  // Restore custom word lists
+  if (s.customLists && Array.isArray(s.customLists)) window._customLists = s.customLists;
+  rebuildWordListSelector();
+  if (s.ppWordlist) {
+    const sel = document.getElementById('pp-wordlist');
+    if (sel && [...sel.options].some(o => o.value === s.ppWordlist)) sel.value = s.ppWordlist;
+  }
+
+  // Restore generator visibility
+  GENERATOR_IDS.forEach(id => {
+    const enabled = s.generators[id] !== undefined ? s.generators[id] : GENERATOR_DEFAULTS[id];
+    const tog  = document.getElementById('tog-'     + id);
+    const card = document.getElementById('section-' + id);
+    if (tog)  { tog.querySelector('input').checked = enabled; tog.classList.toggle('active', enabled); }
+    if (card) card.style.display = enabled ? '' : 'none';
+  });
+
   rebuildTabBar();
 }
-function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(collectSettings())); } catch(e) {} }
-function loadSettings() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) { return null; } }
+
+function saveSettings() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(collectSettings())); } catch(e) {}
+}
+
+function loadSettings() {
+  // Try stable key first, then fall back to legacy versioned keys so
+  // existing saved data isn't lost on first load after update
+  const legacy = ['pwgen_settings_v3','pwgen_settings_v2','pwgen_settings_v1'];
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e) {}
+  if (!raw) {
+    for (const k of legacy) {
+      try { raw = localStorage.getItem(k); if (raw) break; } catch(e) {}
+    }
+  }
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   rebuildWordListSelector();
-  applySettings(loadSettings());
+  const saved   = loadSettings();
+  const merged  = migrateSettings(saved);
+  applySettings(merged);
+  // Immediately re-save under the stable key so legacy keys are superseded
+  saveSettings();
   rebuildTabBar();
   document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
     .forEach(el => el.addEventListener('change', saveSettings));
