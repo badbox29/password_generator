@@ -1,4 +1,4 @@
-# Password Generator
+# Reliquary
 
 A comprehensive, browser-based password and secret generator. Produces passwords, passphrases, PINs, API keys, recovery codes, UUIDs, JWTs, webhook secrets, TOTP secrets, BIP-39 mnemonics, and more — all generated client-side using the Web Crypto API. No server, no accounts, no data leaves your browser.
 
