@@ -1214,15 +1214,30 @@ function syncWordsToFloor() {
   const list     = getActiveWordList();
   const slider   = document.getElementById('pp-words');
   const label    = document.getElementById('pp-words-val');
+
   if (floor === 0) {
     // Floor cleared — snap back to user's preference
-    slider.value    = _ppWordsUserPref;
+    slider.value      = _ppWordsUserPref;
     label.textContent = _ppWordsUserPref;
     return;
   }
-  const bitsPerWord = Math.log2(list.length);
-  const minNeeded   = Math.ceil(floor / bitsPerWord);
-  // Effective words = max(user preference, minNeeded), capped at slider max
+
+  const extras       = document.getElementById('pp-extras').checked;
+  const bitsPerWord  = Math.log2(list.length);
+  // Extras conservatively add ~log2(36) bits per injected char, avg ~1.5 chars per phrase
+  const extrasBits   = extras ? 1.5 * Math.log2(36) : 0;
+
+  // Find the minimum word count where the theoretical max entropy can reach the floor
+  // theoretical max for n words = n * bitsPerWord + extrasBits
+  let minNeeded = _ppWordsUserPref;
+  for (let n = _ppWordsUserPref; n <= 9; n++) {
+    if (n * bitsPerWord + extrasBits >= floor) {
+      minNeeded = n;
+      break;
+    }
+    minNeeded = n + 1; // floor exceeds even 9 words — will cap below
+  }
+
   const effective   = Math.min(9, Math.max(_ppWordsUserPref, minNeeded));
   slider.value      = effective;
   label.textContent = effective;
