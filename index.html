@@ -839,7 +839,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label style="margin-bottom:4px;">Input text</label>
             <textarea id="b64-input" class="b64-input" placeholder="Type or paste text to encode…"></textarea>
           </div>
-          <button class="btn-primary cyan" onclick="encodeBase64 Encoder()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
+          <button class="btn-primary cyan" onclick="encodeBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Encode</button>
         </div>
         <div id="b64-panel-generate" style="display:none">
           <div class="field">
@@ -850,7 +850,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <label>Quantity <span class="val" id="b64-qty-val">10</span></label>
             <input type="range" id="b64-qty" min="1" max="45" value="10" oninput="document.getElementById('b64-qty-val').textContent=this.value">
           </div>
-          <button class="btn-primary cyan" onclick="generateBase64 Encoder()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
+          <button class="btn-primary cyan" onclick="generateBase64()" style="margin-top:4px;"><span class="bolt">⚡</span> Generate</button>
         </div>
       </div>
       <div class="section-right">
@@ -1799,7 +1799,7 @@ function setB64Mode(mode) {
   document.getElementById('b64-output-label').textContent = mode === 'encode' ? 'Encoded' : 'Base64 Encoder Output';
 }
 
-function encodeBase64 Encoder() {
+function encodeBase64() {
   const input = document.getElementById('b64-input').value;
   if (!input) { showToast('Enter text to encode'); return; }
   const encoded = btoa(unescape(encodeURIComponent(input)));
@@ -1814,7 +1814,7 @@ function encodeBase64 Encoder() {
   window._lastB64 = [encoded];
 }
 
-function generateBase64 Encoder() {
+function generateBase64() {
   const bytes = parseInt(document.getElementById('b64-bytes').value);
   const qty   = parseInt(document.getElementById('b64-qty').value);
   const results = [];
