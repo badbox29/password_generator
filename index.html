@@ -164,6 +164,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .entropy-floor-val.moderate{color:#f59e0b;}
 .entropy-floor-val.strong{color:#22c55e;}
 .entropy-floor-val.vstrong{color:#06b6d4;}
+.entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:8px 12px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:160px;transform:translateX(-50%);}
+.entropy-tip.visible{display:block;}
 .tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
 .tip-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
 .tip-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
@@ -427,7 +429,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
         <div class="field" style="margin-top:14px;">
           <label>Words per phrase <span class="val" id="pp-words-val">4</span></label>
-          <input type="range" id="pp-words" min="2" max="9" value="4" oninput="document.getElementById('pp-words-val').textContent=this.value">
+          <input type="range" id="pp-words" min="2" max="9" value="4"
+            oninput="document.getElementById('pp-words-val').textContent=this.value; _ppWordsUserPref=parseInt(this.value);">
         </div>
         <div class="field">
           <label>Quantity <span class="val" id="pp-qty-val">15</span></label>
@@ -439,7 +442,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         </div>
         <div class="field">
           <label>Min entropy <span class="val entropy-floor-val" id="pp-floor-val">0 bits</span></label>
-          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val')">
+          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val'); syncWordsToFloor();">
         </div>
         <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
@@ -885,6 +888,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 </div><!-- /wrap -->
 
 <div class="toast" id="toast"></div>
+<div class="entropy-tip" id="entropyTip">
+  <div class="tip-bits"></div>
+  <div class="tip-label"></div>
+  <div class="tip-bar-wrap"><div class="tip-bar"></div></div>
+  <div class="tip-arrow"></div>
+</div>
 <script>
 // ── CRYPTO RNG ────────────────────────────────────────────────────────────────
 function randInt(max) {
@@ -934,6 +943,24 @@ function calcEntropyForPassphrase(phrase, listSize) {
   return Math.round(bits);
 }
 
+// ── TOOLTIP ───────────────────────────────────────────────────────────────────
+const _tip = document.getElementById('entropyTip');
+function showTip(el, bits) {
+  const color = bits < 50 ? '#ef4444' : bits < 80 ? '#f59e0b' : bits < 100 ? '#22c55e' : '#06b6d4';
+  const label = bits < 50 ? 'Weak' : bits < 80 ? 'Moderate' : bits < 100 ? 'Strong' : 'Very strong';
+  _tip.querySelector('.tip-bits').textContent = bits + ' bits';
+  _tip.querySelector('.tip-bits').style.color = color;
+  _tip.querySelector('.tip-label').textContent = label;
+  const bar = _tip.querySelector('.tip-bar');
+  bar.style.width = Math.min(100, bits / 1.28) + '%';
+  bar.style.background = color;
+  const r = el.getBoundingClientRect();
+  _tip.style.left = (r.left + r.width / 2) + 'px';
+  _tip.style.top  = (r.top - 68) + 'px';
+  _tip.classList.add('visible');
+}
+function hideTip() { _tip.classList.remove('visible'); }
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderItems(outputId, items, colorClass, entropyFn) {
   const el = document.getElementById(outputId);
@@ -950,6 +977,11 @@ function renderItems(outputId, items, colorClass, entropyFn) {
       e.stopPropagation();
       navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); });
     });
+    if (entropyFn) {
+      const bits = entropyFn(text);
+      row.addEventListener('mouseenter', () => showTip(row, bits));
+      row.addEventListener('mouseleave', hideTip);
+    }
     row.appendChild(span); row.appendChild(btn);
     el.appendChild(row);
   });
@@ -1164,7 +1196,7 @@ function generatePassword() {
 
   if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
   window._lastPW = results;
-  renderItems('pw-output', results, 'blue');
+  renderItems('pw-output', results, 'blue', calcEntropyForPassword);
   document.getElementById('pw-count').textContent = results.length + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
   saveSettings();
@@ -1172,6 +1204,29 @@ function generatePassword() {
 
 // ── PASSPHRASE ────────────────────────────────────────────────────────────────
 const RANDOM_SEPS = ['-','_','.','~','/','+',' ',':','=','@','!','#','*'];
+
+// Tracks the user's manually chosen words-per-phrase preference.
+// The slider may move above this when floor demands it, but never below.
+let _ppWordsUserPref = 4;
+
+function syncWordsToFloor() {
+  const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
+  const list     = getActiveWordList();
+  const slider   = document.getElementById('pp-words');
+  const label    = document.getElementById('pp-words-val');
+  if (floor === 0) {
+    // Floor cleared — snap back to user's preference
+    slider.value    = _ppWordsUserPref;
+    label.textContent = _ppWordsUserPref;
+    return;
+  }
+  const bitsPerWord = Math.log2(list.length);
+  const minNeeded   = Math.ceil(floor / bitsPerWord);
+  // Effective words = max(user preference, minNeeded), capped at slider max
+  const effective   = Math.min(9, Math.max(_ppWordsUserPref, minNeeded));
+  slider.value      = effective;
+  label.textContent = effective;
+}
 
 function toggleRandomSep(isRandom) {
   const input = document.getElementById('pp-sep');
@@ -1209,20 +1264,6 @@ function generatePassphrase() {
   const isRandom = document.getElementById('pp-sep-random').checked;
   const list     = getActiveWordList();
   const SPECIAL  = '!@#$%^&*'; const NUMS = '0123456789';
-
-  // If floor is set, figure out minimum words needed to possibly reach it.
-  // Passphrase entropy ≈ words × log2(listSize). Solve for words.
-  if (floor > 0) {
-    const bitsPerWord = Math.log2(list.length);
-    const minWords    = Math.ceil(floor / bitsPerWord);
-    if (minWords > numWords) {
-      numWords = Math.min(minWords, 9); // cap at slider max
-      // Update the slider and label to reflect the bump
-      document.getElementById('pp-words').value = numWords;
-      document.getElementById('pp-words-val').textContent = numWords;
-      showToast(`Words bumped to ${numWords} to reach ${floor}-bit floor`);
-    }
-  }
 
   function makePhrase() {
     let words = [];
@@ -1263,7 +1304,7 @@ function generatePassphrase() {
   }
 
   window._lastPP = phrases;
-  renderItems('pp-output', phrases, 'purple');
+  renderItems('pp-output', phrases, 'purple', p => calcEntropyForPassphrase(p, list.length));
   document.getElementById('pp-count').textContent = phrases.length + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
 }
@@ -1741,6 +1782,7 @@ function applySettings(s) {
   if (s.pwFloor !== undefined) { document.getElementById('pw-floor').value = s.pwFloor; updateFloorLabel('pw-floor','pw-floor-val'); }
 
   set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
+  if (s.ppWords !== undefined) _ppWordsUserPref = parseInt(s.ppWords);
   set('pp-qty',   s.ppQty);       lbl('pp-qty-val',   s.ppQty);
   chk('pp-caps',   s.ppCaps);     chk('pp-extras', s.ppExtras);
   set('pp-sep', s.ppSep !== undefined ? s.ppSep : '-');
