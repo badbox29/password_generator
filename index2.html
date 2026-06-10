@@ -241,7 +241,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .wl-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text-primary);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:1px 2px;outline:none;transition:border-color .15s;min-width:0;}
 .wl-name-input:hover{border-bottom-color:var(--border-light);}
 .wl-name-input:focus{border-bottom-color:var(--blue);}
-/* SETTINGS MODAL WORD LIST TABS — notebook style */
+/* NOVELTY TOGGLE SWITCH */
+.novelty-toggle-wrap{display:none;align-items:center;gap:6px;cursor:pointer;}
+.novelty-toggle-wrap input{display:none;}
+.novelty-toggle-track{width:28px;height:16px;border-radius:8px;background:var(--border);border:1px solid var(--border-light);transition:background .2s,border-color .2s;position:relative;flex-shrink:0;}
+.novelty-toggle-track::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:transform .2s,background .2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.novelty-toggle-wrap input:checked + .novelty-toggle-track{background:var(--purple);border-color:var(--purple);}
+.novelty-toggle-wrap input:checked + .novelty-toggle-track::after{transform:translateX(12px);}
+.novelty-toggle-label-text{font-size:11px;font-weight:600;color:var(--text-muted);transition:color .2s;letter-spacing:.02em;}
+.novelty-toggle-wrap input:checked ~ .novelty-toggle-label-text{color:var(--purple);}
 .wl-tab-bar{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
 .wl-tab-btn{padding:6px 16px;font-size:12px;font-weight:600;color:var(--text-muted);background:var(--bg-card2);border:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:6px 6px 0 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,background .15s;white-space:nowrap;}
 .wl-tab-btn:hover{color:var(--text-secondary);}
@@ -496,9 +504,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="field">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
             <label>Word list</label>
-            <label id="novelty-toggle-label" style="display:none;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);cursor:pointer;">
-              <input type="checkbox" id="pp-novelty-mode" onchange="toggleNoveltyMode(this.checked)" style="accent-color:var(--purple);width:12px;height:12px;">
-              Novelty
+            <label id="novelty-toggle-label" class="novelty-toggle-wrap">
+              <input type="checkbox" id="pp-novelty-mode" onchange="toggleNoveltyMode(this.checked)">
+              <span class="novelty-toggle-track"></span>
+              <span class="novelty-toggle-label-text">Novelty</span>
             </label>
           </div>
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
@@ -1963,7 +1972,6 @@ function toggleNoveltyMode(on) {
 function updateNoveltyToggleVisibility() {
   const label = document.getElementById('novelty-toggle-label');
   if (label) label.style.display = window._noveltyLists.length > 0 ? 'flex' : 'none';
-  // if novelty mode is on but lists are gone, turn it off
   if (window._noveltyMode && window._noveltyLists.length === 0) {
     window._noveltyMode = false;
     const cb = document.getElementById('pp-novelty-mode');
