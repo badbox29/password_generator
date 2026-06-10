@@ -158,8 +158,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .b64-input:focus{border-color:var(--blue);}
 
 /* ENTROPY TOOLTIP */
-.entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:8px 12px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:160px;transform:translateX(-50%);}
-.entropy-tip.visible{display:block;}
+.entropy-floor-val{font-weight:700;transition:color .2s;}
+.entropy-floor-val.weak{color:#ef4444;}
+.entropy-floor-val.moderate{color:#f59e0b;}
+.entropy-floor-val.strong{color:#22c55e;}
+.entropy-floor-val.vstrong{color:#06b6d4;}
 .tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
 .tip-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
 .tip-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
@@ -382,6 +385,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <label>Quantity <span class="val" id="pw-qty-val">15</span></label>
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
+        <div class="field">
+          <label>Min entropy <span class="val entropy-floor-val" id="pw-floor-val">0</span> bits</label>
+          <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val')">
+        </div>
         <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
       <div class="section-right">
@@ -428,6 +435,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
         <div class="field">
           <label style="margin-bottom:5px;">Word list</label>
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
+        </div>
+        <div class="field">
+          <label>Min entropy <span class="val entropy-floor-val" id="pp-floor-val">0</span> bits</label>
+          <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val')">
         </div>
         <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
       </div>
@@ -873,13 +884,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 </div><!-- /wrap -->
 
 <div class="toast" id="toast"></div>
-<div class="entropy-tip" id="entropyTip">
-  <div class="tip-bits"></div>
-  <div class="tip-label"></div>
-  <div class="tip-bar-wrap"><div class="tip-bar"></div></div>
-  <div class="tip-arrow"></div>
-</div>
-
 <script>
 // ── CRYPTO RNG ────────────────────────────────────────────────────────────────
 function randInt(max) {
@@ -898,7 +902,21 @@ const WORD_LIST = ["absolute","abyssal","agile","alpine","amber","amulet","ancho
 
 window._customLists = [];
 
-// ── ENTROPY ───────────────────────────────────────────────────────────────────
+// ── ENTROPY FLOOR ─────────────────────────────────────────────────────────────
+function entropyClass(bits) {
+  if (bits <= 0)  return 'weak';
+  if (bits < 50)  return 'weak';
+  if (bits < 80)  return 'moderate';
+  if (bits < 100) return 'strong';
+  return 'vstrong';
+}
+function updateFloorLabel(sliderId, labelId) {
+  const bits = parseInt(document.getElementById(sliderId).value);
+  const el   = document.getElementById(labelId);
+  el.textContent = bits;
+  el.className   = 'val entropy-floor-val ' + entropyClass(bits);
+  saveSettings();
+}
 function calcEntropyForPassword(pw) {
   let pool = 0;
   if (/[a-z]/.test(pw)) pool += 26;
@@ -915,24 +933,6 @@ function calcEntropyForPassphrase(phrase, listSize) {
   return Math.round(bits);
 }
 
-// ── TOOLTIP ───────────────────────────────────────────────────────────────────
-const _tip = document.getElementById('entropyTip');
-function showTip(el, bits) {
-  const color = bits < 50 ? '#ef4444' : bits < 80 ? '#f59e0b' : '#22c55e';
-  const label = bits < 50 ? 'Weak' : bits < 80 ? 'Moderate' : bits < 100 ? 'Strong' : 'Very strong';
-  _tip.querySelector('.tip-bits').textContent = bits + ' bits';
-  _tip.querySelector('.tip-bits').style.color = color;
-  _tip.querySelector('.tip-label').textContent = label;
-  const bar = _tip.querySelector('.tip-bar');
-  bar.style.width = Math.min(100, bits / 1.28) + '%';
-  bar.style.background = color;
-  const r = el.getBoundingClientRect();
-  _tip.style.left = (r.left + r.width / 2) + 'px';
-  _tip.style.top = (r.top - 62) + 'px';
-  _tip.classList.add('visible');
-}
-function hideTip() { _tip.classList.remove('visible'); }
-
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderItems(outputId, items, colorClass, entropyFn) {
   const el = document.getElementById(outputId);
@@ -942,23 +942,13 @@ function renderItems(outputId, items, colorClass, entropyFn) {
     return;
   }
   items.forEach(text => {
-    const row = document.createElement('div');
-    row.className = 'item';
-    const span = document.createElement('span');
-    span.className = 'item-text ' + colorClass;
-    span.textContent = text;
-    const btn = document.createElement('span');
-    btn.className = 'copy-btn';
-    btn.textContent = '📋';
+    const row  = document.createElement('div');  row.className = 'item';
+    const span = document.createElement('span'); span.className = 'item-text ' + colorClass; span.textContent = text;
+    const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
     btn.addEventListener('click', e => {
       e.stopPropagation();
       navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); });
     });
-    if (entropyFn) {
-      const bits = entropyFn(text);
-      row.addEventListener('mouseenter', () => showTip(row, bits));
-      row.addEventListener('mouseleave', hideTip);
-    }
     row.appendChild(span); row.appendChild(btn);
     el.appendChild(row);
   });
@@ -1107,7 +1097,8 @@ function setPwMode(mode) {
 }
 
 function generatePassword() {
-  const qty = parseInt(document.getElementById('pw-qty').value);
+  const qty   = parseInt(document.getElementById('pw-qty').value);
+  const floor = parseInt(document.getElementById('pw-floor').value) || 0;
   let results = [];
   if (_pwMode === 'random') {
     const length = parseInt(document.getElementById('pw-length').value);
@@ -1163,8 +1154,11 @@ function generatePassword() {
       results.push(p);
     }
   }
+  // filter by entropy floor
+  if (floor > 0) results = results.filter(p => calcEntropyForPassword(p) >= floor);
+  if (!results.length) { showToast('No results met the entropy floor — try lowering it'); return; }
   window._lastPW = results;
-  renderItems('pw-output', results, 'blue', calcEntropyForPassword);
+  renderItems('pw-output', results, 'blue');
   document.getElementById('pw-count').textContent = qty + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
   saveSettings();
@@ -1203,6 +1197,7 @@ function getActiveWordList() {
 function generatePassphrase() {
   const numWords = parseInt(document.getElementById('pp-words').value);
   const qty      = parseInt(document.getElementById('pp-qty').value);
+  const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
   const caps     = document.getElementById('pp-caps').checked;
   const extras   = document.getElementById('pp-extras').checked;
   const isRandom = document.getElementById('pp-sep-random').checked;
@@ -1233,8 +1228,11 @@ function generatePassphrase() {
     }
     phrases.push(joined);
   }
-  window._lastPP = phrases;
-  renderItems('pp-output', phrases, 'purple', p => calcEntropyForPassphrase(p, list.length));
+  // filter by entropy floor
+  const filtered = floor > 0 ? phrases.filter(p => calcEntropyForPassphrase(p, list.length) >= floor) : phrases;
+  if (!filtered.length) { showToast('No results met the entropy floor — try lowering it'); return; }
+  window._lastPP = filtered;
+  renderItems('pp-output', filtered, 'purple');
   document.getElementById('pp-count').textContent = qty + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
 }
@@ -1264,7 +1262,7 @@ function generatePIN() {
     pins.push(digits);
   }
   window._lastPIN = pins;
-  renderItems('pin-output', pins, 'green', p => Math.round(p.replace(/\s/g,'').length * Math.log2(10)));
+  renderItems('pin-output', pins, 'green');
   document.getElementById('pin-count').textContent = qty + ' generated';
   document.getElementById('pin-copy-all').style.display = '';
   saveSettings();
@@ -1293,7 +1291,7 @@ function generateUsername() {
     results.push(useSep ? parts.join(sepChar) : parts.join(''));
   }
   window._lastUN = results;
-  renderItems('un-output', results, 'purple', () => 0);
+  renderItems('un-output', results, 'purple');
   document.getElementById('un-count').textContent = qty + ' generated';
   document.getElementById('un-copy-all').style.display = '';
 }
@@ -1318,7 +1316,7 @@ function generateApiKey() {
     results.push(key);
   }
   window._lastAK = results;
-  renderItems('ak-output', results, 'rose', () => 0);
+  renderItems('ak-output', results, 'rose');
   document.getElementById('ak-count').textContent = qty + ' generated';
   document.getElementById('ak-copy-all').style.display = '';
 }
@@ -1342,7 +1340,7 @@ function generateRecoveryCodes() {
     results.push(hyphen ? parts.join('-') : parts.join(''));
   }
   window._lastRC = results;
-  renderItems('rc-output', results, 'rose', () => 0);
+  renderItems('rc-output', results, 'rose');
   document.getElementById('rc-count').textContent = qty + ' generated';
   document.getElementById('rc-copy-all').style.display = '';
 }
@@ -1362,7 +1360,7 @@ function generateTOTP() {
     results.push(spaces ? b32.match(/.{1,4}/g).join(' ') : b32);
   }
   window._lastTOTP = results;
-  renderItems('totp-output', results, 'rose', () => 0);
+  renderItems('totp-output', results, 'rose');
   document.getElementById('totp-count').textContent = qty + ' generated';
   document.getElementById('totp-copy-all').style.display = '';
 }
@@ -1386,7 +1384,7 @@ function generateUUID() {
     results.push(u);
   }
   window._lastUUID = results;
-  renderItems('uuid-output', results, 'cyan', () => 0);
+  renderItems('uuid-output', results, 'cyan');
   document.getElementById('uuid-count').textContent = qty + ' generated';
   document.getElementById('uuid-copy-all').style.display = '';
 }
@@ -1486,7 +1484,7 @@ function generateWebhook() {
     results.push(raw);
   }
   window._lastWH = results;
-  renderItems('wh-output', results, 'cyan', () => 0);
+  renderItems('wh-output', results, 'cyan');
   document.getElementById('wh-count').textContent = qty + ' generated';
   document.getElementById('wh-copy-all').style.display = '';
 }
@@ -1525,7 +1523,7 @@ function generateBase64() {
     results.push(btoa(String.fromCharCode(...b)));
   }
   window._lastB64 = results;
-  renderItems('b64-output', results, 'cyan', () => 0);
+  renderItems('b64-output', results, 'cyan');
   document.getElementById('b64-copy-all').style.display = '';
 }
 
@@ -1629,9 +1627,9 @@ const LS_KEY = 'pwgen_settings';
 const SETTINGS_DEFAULTS = {
   pwLength: '26', pwQty: '15',
   pwUpper: true, pwLower: true, pwNums: true, pwSpecial: true, pwNoambig: false,
-  pwMode: 'random',
+  pwMode: 'random',   pwFloor: '0',
   ppWords: '4', ppQty: '15',
-  ppCaps: true, ppExtras: true, ppSep: '-', ppSepRandom: false, ppWordlist: 'builtin',
+  ppCaps: true, ppExtras: true, ppSep: '-', ppSepRandom: false, ppWordlist: 'builtin', ppFloor: '0',
   pinLength: '6', pinQty: '15', pinSpaces: false,
   darkMode: true,
   generators: GENERATOR_DEFAULTS,
@@ -1679,6 +1677,7 @@ function collectSettings() {
     pwSpecial:  document.getElementById('pw-special').checked,
     pwNoambig:  document.getElementById('pw-noambig').checked,
     pwMode:     _pwMode,
+    pwFloor:    document.getElementById('pw-floor').value,
     ppWords:    document.getElementById('pp-words').value,
     ppQty:      document.getElementById('pp-qty').value,
     ppCaps:     document.getElementById('pp-caps').checked,
@@ -1686,6 +1685,7 @@ function collectSettings() {
     ppSep:      document.getElementById('pp-sep').value,
     ppSepRandom: document.getElementById('pp-sep-random').checked,
     ppWordlist: document.getElementById('pp-wordlist') ? document.getElementById('pp-wordlist').value : 'builtin',
+    ppFloor:    document.getElementById('pp-floor').value,
     pinLength:  document.getElementById('pin-length').value,
     pinQty:     document.getElementById('pin-qty').value,
     pinSpaces:  document.getElementById('pin-spaces').checked,
@@ -1707,12 +1707,14 @@ function applySettings(s) {
   chk('pw-nums',    s.pwNums);    chk('pw-special', s.pwSpecial);
   chk('pw-noambig', s.pwNoambig);
   if (s.pwMode) setPwMode(s.pwMode);
+  if (s.pwFloor !== undefined) { document.getElementById('pw-floor').value = s.pwFloor; updateFloorLabel('pw-floor','pw-floor-val'); }
 
   set('pp-words', s.ppWords);     lbl('pp-words-val', s.ppWords);
   set('pp-qty',   s.ppQty);       lbl('pp-qty-val',   s.ppQty);
   chk('pp-caps',   s.ppCaps);     chk('pp-extras', s.ppExtras);
   set('pp-sep', s.ppSep !== undefined ? s.ppSep : '-');
   if (s.ppSepRandom) { chk('pp-sep-random', true); toggleRandomSep(true); }
+  if (s.ppFloor !== undefined) { document.getElementById('pp-floor').value = s.ppFloor; updateFloorLabel('pp-floor','pp-floor-val'); }
 
   set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
   set('pin-qty',    s.pinQty);    lbl('pin-qty-val',  s.pinQty);
