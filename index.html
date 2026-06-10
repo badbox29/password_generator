@@ -169,12 +169,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .entropy-floor-strength.moderate{color:#f59e0b;}
 .entropy-floor-strength.strong{color:#22c55e;}
 .entropy-floor-strength.vstrong{color:#06b6d4;}
-.entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:8px 12px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:160px;transform:translateX(-50%);}
+.entropy-tip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:8px;padding:10px 14px;white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.4);min-width:220px;transform:translateX(-50%);}
 .entropy-tip.visible{display:block;}
-.tip-bits{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-bottom:4px;}
-.tip-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
-.tip-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.tip-bar{height:100%;border-radius:2px;}
+.tip-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:3px;}
+.tip-bits-theoretical{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);}
+.tip-bits-label{font-size:10px;color:var(--text-muted);text-align:right;}
+.tip-bits-effective{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
+.tip-strength{font-size:11px;font-weight:600;text-align:right;}
+.tip-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin:5px 0;}
+.tip-bar{height:100%;border-radius:2px;transition:width .2s;}
+.tip-footer{font-size:9px;color:var(--text-muted);margin-top:5px;line-height:1.4;max-width:220px;white-space:normal;}
 .tip-arrow{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid var(--border-light);}
 
 /* TOAST */
@@ -897,9 +901,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 <div class="toast" id="toast"></div>
 <div class="entropy-tip" id="entropyTip">
-  <div class="tip-bits"></div>
-  <div class="tip-label"></div>
-  <div class="tip-bar-wrap"><div class="tip-bar"></div></div>
+  <div class="tip-row">
+    <span class="tip-bits-theoretical" id="tip-theoretical"></span>
+    <span class="tip-bits-label">theoretical entropy</span>
+  </div>
+  <div class="tip-row">
+    <span class="tip-bits-effective" id="tip-effective"></span>
+    <span class="tip-strength" id="tip-strength"></span>
+  </div>
+  <div class="tip-bar-wrap"><div class="tip-bar" id="tip-bar"></div></div>
+  <div class="tip-row" style="margin-bottom:0;">
+    <span class="tip-bits-label" style="font-size:9px;">effective entropy</span>
+  </div>
+  <div class="tip-footer">Effective entropy is used for strength ratings and minimum-strength thresholds.</div>
   <div class="tip-arrow"></div>
 </div>
 <script>
@@ -969,20 +983,35 @@ function calcEntropyForPassphrase(wordCount, listSize, extrasCount, alphaCharCou
   return Math.round(bits);
 }
 
+// Theoretical entropy: treats each character as independently drawn from
+// the observed charset — what a generic brute-force attacker must search.
+function calcTheoreticalEntropy(str) {
+  let pool = 0;
+  if (/[a-z]/.test(str)) pool += 26;
+  if (/[A-Z]/.test(str)) pool += 26;
+  if (/[0-9]/.test(str)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(str)) pool += 24;
+  return pool > 0 ? Math.round(str.length * Math.log2(pool)) : 0;
+}
+
 // ── TOOLTIP ───────────────────────────────────────────────────────────────────
 const _tip = document.getElementById('entropyTip');
-function showTip(el, bits) {
-  const color = bits < 50 ? '#ef4444' : bits < 80 ? '#f59e0b' : bits < 100 ? '#22c55e' : '#06b6d4';
-  const label = bits < 50 ? 'Weak' : bits < 80 ? 'Moderate' : bits < 100 ? 'Strong' : 'Very strong';
-  _tip.querySelector('.tip-bits').textContent = bits + ' bits';
-  _tip.querySelector('.tip-bits').style.color = color;
-  _tip.querySelector('.tip-label').textContent = label;
-  const bar = _tip.querySelector('.tip-bar');
-  bar.style.width = Math.min(100, bits / 1.28) + '%';
+// showTip(el, effectiveBits, str) — str used to compute theoretical entropy
+function showTip(el, effectiveBits, str) {
+  const color  = effectiveBits < 50 ? '#ef4444' : effectiveBits < 80 ? '#f59e0b' : effectiveBits < 100 ? '#22c55e' : '#06b6d4';
+  const label  = effectiveBits < 50 ? 'Weak' : effectiveBits < 80 ? 'Moderate' : effectiveBits < 100 ? 'Strong' : 'Very strong';
+  const theoBits = str ? calcTheoreticalEntropy(str) : effectiveBits;
+  _tip.querySelector('#tip-theoretical').textContent = theoBits + ' bits';
+  _tip.querySelector('#tip-effective').textContent   = effectiveBits + ' bits';
+  _tip.querySelector('#tip-effective').style.color   = color;
+  _tip.querySelector('#tip-strength').textContent    = label;
+  _tip.querySelector('#tip-strength').style.color    = color;
+  const bar = _tip.querySelector('#tip-bar');
+  bar.style.width      = Math.min(100, effectiveBits / 1.28) + '%';
   bar.style.background = color;
   const r = el.getBoundingClientRect();
   _tip.style.left = (r.left + r.width / 2) + 'px';
-  _tip.style.top  = (r.top - 68) + 'px';
+  _tip.style.top  = (r.top - 110) + 'px';
   _tip.classList.add('visible');
 }
 function hideTip() { _tip.classList.remove('visible'); }
@@ -1005,7 +1034,7 @@ function renderItems(outputId, items, colorClass, entropyFn) {
     });
     if (entropyFn) {
       const bits = entropyFn(text);
-      row.addEventListener('mouseenter', () => showTip(row, bits));
+      row.addEventListener('mouseenter', () => showTip(row, bits, text));
       row.addEventListener('mouseleave', hideTip);
     }
     row.appendChild(span); row.appendChild(btn);
@@ -1179,7 +1208,7 @@ function generatePassword() {
     if (!pool) { showToast('Select at least one character type'); return; }
     const poolSize = pool.length; // exact configured pool — consistent across all items
     makeOne  = () => { let p = ''; for (let j = 0; j < length; j++) p += pool[randInt(pool.length)]; return p; };
-    entropyFn = () => Math.round(length * Math.log2(poolSize)); // deterministic — same for every item
+    entropyFn = (_text) => Math.round(length * Math.log2(poolSize)); // deterministic — same for every item
   } else if (_pwMode === 'memorable') {
     const caps    = document.getElementById('mem-caps').checked;
     const useNums = document.getElementById('mem-nums').checked;
@@ -1201,7 +1230,7 @@ function generatePassword() {
     // Entropy: 1 word from list + padLen chars from padPool
     const wordBits = Math.log2(WORD_LIST.length);
     const padBits  = padPool > 0 ? padLen * Math.log2(padPool) : 0;
-    entropyFn = () => Math.round(wordBits + padBits);
+    entropyFn = (_text) => Math.round(wordBits + padBits);
   } else {
     // Pronounceable
     const sylCount = parseInt(document.getElementById('pro-syl').value);
@@ -1220,7 +1249,7 @@ function generatePassword() {
       if (useNums) p += (randInt(90) + 10).toString();
       return p;
     };
-    entropyFn = () => Math.round(sylCount * Math.log2(sylPool) + numBits);
+    entropyFn = (_text) => Math.round(sylCount * Math.log2(sylPool) + numBits);
   }
 
   const results   = [];
@@ -1228,7 +1257,7 @@ function generatePassword() {
   let   dryStreak = 0;
   while (results.length < qty && dryStreak < DRY_LIMIT) {
     const p = makeOne();
-    if (floor === 0 || entropyFn() >= floor) {
+    if (floor === 0 || entropyFn(p) >= floor) {
       results.push(p);
       dryStreak = 0;
     } else {
@@ -1238,7 +1267,7 @@ function generatePassword() {
 
   if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
   window._lastPW = results;
-  renderItems('pw-output', results, 'blue', () => entropyFn());
+  renderItems('pw-output', results, 'blue', entropyFn);
   document.getElementById('pw-count').textContent = results.length + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
   saveSettings();
@@ -1407,7 +1436,7 @@ function generatePassphrase() {
     const span = document.createElement('span'); span.className = 'item-text purple'; span.textContent = text;
     const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
     btn.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
-    row.addEventListener('mouseenter', () => showTip(row, bits));
+    row.addEventListener('mouseenter', () => showTip(row, bits, text));
     row.addEventListener('mouseleave', hideTip);
     row.appendChild(span); row.appendChild(btn);
     el.appendChild(row);
