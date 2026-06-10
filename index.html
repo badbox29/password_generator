@@ -159,6 +159,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
 /* ENTROPY TOOLTIP */
 .entropy-floor-val{font-weight:700;transition:color .2s;}
+.entropy-floor-val.zero{color:var(--text-muted);}
 .entropy-floor-val.weak{color:#ef4444;}
 .entropy-floor-val.moderate{color:#f59e0b;}
 .entropy-floor-val.strong{color:#22c55e;}
@@ -386,7 +387,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <input type="range" id="pw-qty" min="1" max="45" value="15" oninput="document.getElementById('pw-qty-val').textContent=this.value">
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val" id="pw-floor-val">0</span> bits</label>
+          <label>Min entropy <span class="val entropy-floor-val" id="pw-floor-val">0 bits</span></label>
           <input type="range" id="pw-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pw-floor','pw-floor-val')">
         </div>
         <button class="btn-primary" onclick="generatePassword()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
@@ -437,7 +438,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <select class="wl-select" id="pp-wordlist" onchange="saveSettings()" style="width:100%;"></select>
         </div>
         <div class="field">
-          <label>Min entropy <span class="val entropy-floor-val" id="pp-floor-val">0</span> bits</label>
+          <label>Min entropy <span class="val entropy-floor-val" id="pp-floor-val">0 bits</span></label>
           <input type="range" id="pp-floor" min="0" max="150" value="0" oninput="updateFloorLabel('pp-floor','pp-floor-val')">
         </div>
         <button class="btn-primary purple" onclick="generatePassphrase()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
@@ -904,7 +905,7 @@ window._customLists = [];
 
 // ── ENTROPY FLOOR ─────────────────────────────────────────────────────────────
 function entropyClass(bits) {
-  if (bits <= 0)  return 'weak';
+  if (bits <= 0)  return 'zero';
   if (bits < 50)  return 'weak';
   if (bits < 80)  return 'moderate';
   if (bits < 100) return 'strong';
@@ -913,7 +914,7 @@ function entropyClass(bits) {
 function updateFloorLabel(sliderId, labelId) {
   const bits = parseInt(document.getElementById(sliderId).value);
   const el   = document.getElementById(labelId);
-  el.textContent = bits;
+  el.textContent = bits === 0 ? 'none' : bits + ' bits';
   el.className   = 'val entropy-floor-val ' + entropyClass(bits);
   saveSettings();
 }
@@ -1099,15 +1100,17 @@ function setPwMode(mode) {
 function generatePassword() {
   const qty   = parseInt(document.getElementById('pw-qty').value);
   const floor = parseInt(document.getElementById('pw-floor').value) || 0;
-  let results = [];
+
+  // Build a makeOne() function based on current mode
+  let makeOne;
   if (_pwMode === 'random') {
     const length = parseInt(document.getElementById('pw-length').value);
-    const upper = document.getElementById('pw-upper').checked;
-    const lower = document.getElementById('pw-lower').checked;
-    const nums  = document.getElementById('pw-nums').checked;
-    const spec  = document.getElementById('pw-special').checked;
-    const noAmb = document.getElementById('pw-noambig').checked;
-    const AMBIG = new Set(['0','O','l','1','I']);
+    const upper  = document.getElementById('pw-upper').checked;
+    const lower  = document.getElementById('pw-lower').checked;
+    const nums   = document.getElementById('pw-nums').checked;
+    const spec   = document.getElementById('pw-special').checked;
+    const noAmb  = document.getElementById('pw-noambig').checked;
+    const AMBIG  = new Set(['0','O','l','1','I']);
     let pool = '';
     if (upper) pool += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     if (lower) pool += 'abcdefghijklmnopqrstuvwxyz';
@@ -1115,18 +1118,14 @@ function generatePassword() {
     if (spec)  pool += '!@#$%^&*()_+[]{}|;:,.<>?';
     if (noAmb) pool = pool.split('').filter(c => !AMBIG.has(c)).join('');
     if (!pool) { showToast('Select at least one character type'); return; }
-    for (let i = 0; i < qty; i++) {
-      let p = '';
-      for (let j = 0; j < length; j++) p += pool[randInt(pool.length)];
-      results.push(p);
-    }
+    makeOne = () => { let p = ''; for (let j = 0; j < length; j++) p += pool[randInt(pool.length)]; return p; };
   } else if (_pwMode === 'memorable') {
     const caps    = document.getElementById('mem-caps').checked;
     const useNums = document.getElementById('mem-nums').checked;
     const useSpec = document.getElementById('mem-special').checked;
     const padLen  = parseInt(document.getElementById('mem-pad').value);
-    const SPEC = '!@#$%&*';
-    for (let i = 0; i < qty; i++) {
+    const SPEC    = '!@#$%&*';
+    makeOne = () => {
       let word = WORD_LIST[randInt(WORD_LIST.length)];
       if (caps) word = word.charAt(0).toUpperCase() + word.slice(1);
       let pad = '';
@@ -1135,14 +1134,13 @@ function generatePassword() {
         if (useNums && (!useSpec || r < 10)) pad += r.toString();
         else if (useSpec) pad += SPEC[randInt(SPEC.length)];
       }
-      results.push(word + pad);
-    }
+      return word + pad;
+    };
   } else {
-    // pronounceable
     const sylCount = parseInt(document.getElementById('pro-syl').value);
     const useCaps  = document.getElementById('pro-caps').checked;
     const useNums  = document.getElementById('pro-nums').checked;
-    for (let i = 0; i < qty; i++) {
+    makeOne = () => {
       let p = '';
       for (let s = 0; s < sylCount; s++) {
         let c = CONSONANTS[randInt(CONSONANTS.length)];
@@ -1151,15 +1149,23 @@ function generatePassword() {
         p += c + v;
       }
       if (useNums) p += (randInt(90) + 10).toString();
-      results.push(p);
-    }
+      return p;
+    };
   }
-  // filter by entropy floor
-  if (floor > 0) results = results.filter(p => calcEntropyForPassword(p) >= floor);
-  if (!results.length) { showToast('No results met the entropy floor — try lowering it'); return; }
+
+  const results  = [];
+  const maxTries = qty * 200;
+  let   tries    = 0;
+  while (results.length < qty && tries < maxTries) {
+    const p = makeOne();
+    if (floor === 0 || calcEntropyForPassword(p) >= floor) results.push(p);
+    tries++;
+  }
+
+  if (!results.length) { showToast('Could not meet entropy floor — try lowering it or widening the character set'); return; }
   window._lastPW = results;
   renderItems('pw-output', results, 'blue');
-  document.getElementById('pw-count').textContent = qty + ' generated';
+  document.getElementById('pw-count').textContent = results.length + ' generated';
   document.getElementById('pw-copy-all').style.display = '';
   saveSettings();
 }
@@ -1195,7 +1201,7 @@ function getActiveWordList() {
 }
 
 function generatePassphrase() {
-  const numWords = parseInt(document.getElementById('pp-words').value);
+  let   numWords = parseInt(document.getElementById('pp-words').value);
   const qty      = parseInt(document.getElementById('pp-qty').value);
   const floor    = parseInt(document.getElementById('pp-floor').value) || 0;
   const caps     = document.getElementById('pp-caps').checked;
@@ -1203,8 +1209,22 @@ function generatePassphrase() {
   const isRandom = document.getElementById('pp-sep-random').checked;
   const list     = getActiveWordList();
   const SPECIAL  = '!@#$%^&*'; const NUMS = '0123456789';
-  const phrases  = [];
-  for (let q = 0; q < qty; q++) {
+
+  // If floor is set, figure out minimum words needed to possibly reach it.
+  // Passphrase entropy ≈ words × log2(listSize). Solve for words.
+  if (floor > 0) {
+    const bitsPerWord = Math.log2(list.length);
+    const minWords    = Math.ceil(floor / bitsPerWord);
+    if (minWords > numWords) {
+      numWords = Math.min(minWords, 9); // cap at slider max
+      // Update the slider and label to reflect the bump
+      document.getElementById('pp-words').value = numWords;
+      document.getElementById('pp-words-val').textContent = numWords;
+      showToast(`Words bumped to ${numWords} to reach ${floor}-bit floor`);
+    }
+  }
+
+  function makePhrase() {
     let words = [];
     for (let w = 0; w < numWords; w++) {
       let word = list[randInt(list.length)];
@@ -1220,20 +1240,31 @@ function generatePassphrase() {
         words[idx] = words[idx].slice(0, pos) + ch + words[idx].slice(pos);
       }
     }
-    let joined;
     if (isRandom) {
-      joined = words.reduce((acc, word, i) => i === 0 ? word : acc + RANDOM_SEPS[randInt(RANDOM_SEPS.length)] + word);
-    } else {
-      joined = words.join(getActiveSep());
+      return words.reduce((acc, word, i) => i === 0 ? word : acc + RANDOM_SEPS[randInt(RANDOM_SEPS.length)] + word);
     }
-    phrases.push(joined);
+    return words.join(getActiveSep());
   }
-  // filter by entropy floor
-  const filtered = floor > 0 ? phrases.filter(p => calcEntropyForPassphrase(p, list.length) >= floor) : phrases;
-  if (!filtered.length) { showToast('No results met the entropy floor — try lowering it'); return; }
-  window._lastPP = filtered;
-  renderItems('pp-output', filtered, 'purple');
-  document.getElementById('pp-count').textContent = qty + ' generated';
+
+  const phrases  = [];
+  const maxTries = qty * 200; // safety cap
+  let   tries    = 0;
+  while (phrases.length < qty && tries < maxTries) {
+    const p = makePhrase();
+    if (floor === 0 || calcEntropyForPassphrase(p, list.length) >= floor) {
+      phrases.push(p);
+    }
+    tries++;
+  }
+
+  if (!phrases.length) {
+    showToast('Could not meet entropy floor — try fewer words or lower the floor');
+    return;
+  }
+
+  window._lastPP = phrases;
+  renderItems('pp-output', phrases, 'purple');
+  document.getElementById('pp-count').textContent = phrases.length + ' generated';
   document.getElementById('pp-copy-all').style.display = '';
 }
 
