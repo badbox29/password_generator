@@ -1165,8 +1165,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <input type="text" id="totp-issuer" class="inline-input" style="width:100%;margin-top:4px;" placeholder="MyApp">
         </div>
         <div class="field">
-          <label style="font-size:12px;">Secret</label>
-          <select id="totp-secret-select" class="inline-select" style="width:100%;margin-top:4px;"></select>
+          <label style="font-size:12px;">Key length</label>
+          <select id="totp-qr-len" class="inline-select" style="width:100%;margin-top:4px;">
+            <option value="20" selected>160-bit (standard)</option>
+            <option value="32">256-bit</option>
+          </select>
         </div>
         <button class="btn-primary rose" onclick="generateTotpQR()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate QR</button>
       </div>
@@ -2658,23 +2661,6 @@ function closeQR() {
 
 // TOTP QR
 function openTotpQrModal() {
-  // Populate secret selector from current output
-  const sel = document.getElementById('totp-secret-select');
-  sel.innerHTML = '';
-  const items = document.querySelectorAll('#totp-output .item-text');
-  if (items.length === 0) {
-    const o = document.createElement('option');
-    o.value = ''; o.textContent = 'No secrets generated yet';
-    sel.appendChild(o);
-  } else {
-    items.forEach((item, i) => {
-      const raw = item.textContent.replace(/\s/g, '');
-      const o = document.createElement('option');
-      o.value = raw;
-      o.textContent = raw.length > 32 ? raw.slice(0, 32) + '…' : raw;
-      sel.appendChild(o);
-    });
-  }
   // Reset output panel
   document.getElementById('totp-qr-output').innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;font-family:\'DM Sans\',sans-serif;">Enter account details<br>and click Generate QR</div>';
   document.getElementById('totpQrModal').classList.add('open');
@@ -2687,10 +2673,18 @@ function closeTotpQrModal() {
 function generateTotpQR() {
   const account = document.getElementById('totp-account').value.trim();
   const issuer  = document.getElementById('totp-issuer').value.trim();
-  const secret  = document.getElementById('totp-secret-select').value;
+  const byteLen = parseInt(document.getElementById('totp-qr-len').value);
   if (!account) { showToast('Enter an account name'); return; }
   if (!issuer)  { showToast('Enter an issuer'); return; }
-  if (!secret)  { showToast('Generate a TOTP secret first'); return; }
+
+  // Generate a fresh TOTP secret independently
+  const bytes = randBytes(byteLen);
+  let bits = '';
+  for (const byte of bytes) bits += byte.toString(2).padStart(8, '0');
+  while (bits.length % 5 !== 0) bits += '0';
+  let secret = '';
+  for (let j = 0; j < bits.length; j += 5) secret += BASE32_CHARS[parseInt(bits.slice(j, j+5), 2)];
+
   const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
   const out = document.getElementById('totp-qr-output');
   out.innerHTML = '';
@@ -2709,9 +2703,12 @@ function generateTotpQR() {
   label.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:\'DM Sans\',sans-serif;text-align:center;';
   label.textContent = 'QR encodes this value exactly';
   const secretLabel = document.createElement('div');
-  secretLabel.style.cssText = 'font-size:9px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;word-break:break-all;text-align:center;max-width:180px;';
+  secretLabel.style.cssText = 'font-size:9px;color:var(--rose);font-family:\'JetBrains Mono\',monospace;word-break:break-all;text-align:center;max-width:180px;';
   secretLabel.textContent = secret;
-  wrap.appendChild(canvas); wrap.appendChild(label); wrap.appendChild(secretLabel);
+  const copyBtn = document.createElement('span');
+  copyBtn.className = 'copy-btn'; copyBtn.textContent = '📋';
+  copyBtn.addEventListener('click', () => { navigator.clipboard.writeText(secret).then(() => { copyBtn.textContent = '✔'; setTimeout(() => copyBtn.textContent = '📋', 1000); }); });
+  wrap.appendChild(canvas); wrap.appendChild(label); wrap.appendChild(secretLabel); wrap.appendChild(copyBtn);
   out.appendChild(wrap);
 }
 
