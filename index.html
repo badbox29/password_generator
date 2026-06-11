@@ -38,12 +38,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 /* TABS */
 /* TABS — rendered inside .wrap, above the first card */
 .tabs-nav{display:none;margin-bottom:0;}
-.tabs-nav.visible{display:flex;gap:2px;margin-bottom:6px;position:relative;z-index:1;}
+.tabs-nav.visible{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:1;}
 .tab-btn{padding:8px 18px;font-size:13px;font-weight:600;color:var(--text-muted);background:var(--bg-card2);border:1px solid var(--border);border-bottom:1px solid var(--border);border-radius:8px 8px 0 0;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,background .15s;white-space:nowrap;}
 .tab-btn:hover{color:var(--text-secondary);}
-.tab-btn.active{background:var(--bg-card);color:var(--text-primary);border-color:var(--border);}
+.tab-btn.active{background:var(--bg-card);color:var(--text-primary);border-color:var(--border);border-bottom-color:var(--bg-card);}
 
 /* when tabs are showing, the wrap needs no extra top gap */
+/* active tab butts flush against card — square top-left corner only */
+.tabs-nav.visible + .tab-page.active > .section-card:first-child{border-top-left-radius:0;}
 .wrap.tabs-showing{padding-top:16px;}
 
 /* LAYOUT */
