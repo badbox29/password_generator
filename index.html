@@ -1755,12 +1755,25 @@ async function hmacSign(secret, message, alg) {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(secret), { name:'HMAC', hash: alg }, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', keyMaterial, enc.encode(message));
-  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return btoa(bytesToBinaryString(new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+// Chunked byte-to-binary-string to avoid browser argument-limit on large arrays
+function bytesToBinaryString(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return binary;
+}
+function base64UrlFromBytes(bytes) {
+  return btoa(bytesToBinaryString(bytes))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 function b64url(obj) {
-  // TextEncoder for UTF-8 safety — btoa(JSON.stringify()) chokes on non-ASCII
-  const bytes = new TextEncoder().encode(JSON.stringify(obj));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  // TextEncoder for UTF-8 safety; chunked conversion avoids spread argument limits
+  return base64UrlFromBytes(new TextEncoder().encode(JSON.stringify(obj)));
 }
 
 async function generateJWT() {
@@ -1869,7 +1882,7 @@ function encodeBase64() {
   if (!input) { showToast('Enter text to encode'); return; }
   // TextEncoder handles full UTF-8 range safely
   const bytes = new TextEncoder().encode(input);
-  const encoded = btoa(String.fromCharCode(...bytes));
+  const encoded = btoa(bytesToBinaryString(bytes));
   const el = document.getElementById('b64-output');
   el.innerHTML = '';
   const row = document.createElement('div'); row.className = 'item';
@@ -1887,7 +1900,7 @@ function generateBase64() {
   const results = [];
   for (let i = 0; i < qty; i++) {
     const b = randBytes(bytes);
-    results.push(btoa(String.fromCharCode(...b)));
+    results.push(btoa(bytesToBinaryString(b)));
   }
   window._lastB64 = results;
   const b64Bits = bytes * 8;
