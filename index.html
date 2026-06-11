@@ -723,7 +723,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       </div>
       <div class="section-right">
         <div class="output-header">
-          <span class="output-label">TOTP Secretss</span>
+          <span class="output-label">TOTP Secrets</span>
           <div class="output-actions">
             <span class="output-count" id="totp-count"></span>
             <button class="btn-ghost" id="totp-copy-all" onclick="copyAll('totp')" style="display:none;">Copy all</button>
@@ -851,7 +851,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       </div>
       <div class="section-right">
         <div class="output-header">
-          <span class="output-label">Webhook Secretss</span>
+          <span class="output-label">Webhook Secrets</span>
           <div class="output-actions">
             <span class="output-count" id="wh-count"></span>
             <button class="btn-ghost" id="wh-copy-all" onclick="copyAll('wh')" style="display:none;">Copy all</button>
@@ -1336,10 +1336,12 @@ function generatePassword() {
       let word = WORD_LIST[randInt(WORD_LIST.length)];
       if (caps) word = word.charAt(0).toUpperCase() + word.slice(1);
       let pad = '';
-      for (let j = 0; j < padLen; j++) {
-        const r = randInt(padPool);
-        if (useNums && (!useSpec || r < 10)) pad += r.toString();
-        else if (useSpec) pad += SPEC[randInt(SPEC.length)];
+      if (padPool > 0) {
+        for (let j = 0; j < padLen; j++) {
+          const r = randInt(padPool);
+          if (useNums && (!useSpec || r < 10)) pad += r.toString();
+          else if (useSpec) pad += SPEC[randInt(SPEC.length)];
+        }
       }
       return word + pad;
     };
@@ -1612,8 +1614,10 @@ function generatePIN() {
     pins.push(digits);
   }
   window._lastPIN = pins;
-  const pinBits = Math.round(length * Math.log2(10));
-  renderItems('pin-output', pins, 'green', () => pinBits, () => pinBits);
+  // Entropy is only accurate when no restrictions are applied.
+  // Restrictions (no-seq, no-rep) reduce the valid space unpredictably.
+  const pinEntropyFn = (noSeq || noRep) ? null : (() => Math.round(length * Math.log2(10)));
+  renderItems('pin-output', pins, 'green', pinEntropyFn, pinEntropyFn);
   document.getElementById('pin-count').textContent = qty + ' generated';
   document.getElementById('pin-copy-all').style.display = '';
   saveSettings();
@@ -1710,7 +1714,9 @@ function generateTOTP() {
     const bytes = randBytes(byteLen);
     let bits = '', b32 = '';
     for (const byte of bytes) bits += byte.toString(2).padStart(8, '0');
-    for (let j = 0; j + 5 <= bits.length; j += 5) b32 += BASE32_CHARS[parseInt(bits.slice(j, j+5), 2)];
+    // Pad to next multiple of 5 so all entropy bits are encoded (fixes 256-bit losing 1 bit)
+    while (bits.length % 5 !== 0) bits += '0';
+    for (let j = 0; j < bits.length; j += 5) b32 += BASE32_CHARS[parseInt(bits.slice(j, j+5), 2)];
     results.push(spaces ? b32.match(/.{1,4}/g).join(' ') : b32);
   }
   window._lastTOTP = results;
@@ -1752,7 +1758,9 @@ async function hmacSign(secret, message, alg) {
   return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
 function b64url(obj) {
-  return btoa(JSON.stringify(obj)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  // TextEncoder for UTF-8 safety — btoa(JSON.stringify()) chokes on non-ASCII
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
 
 async function generateJWT() {
@@ -1859,7 +1867,9 @@ function setB64Mode(mode) {
 function encodeBase64() {
   const input = document.getElementById('b64-input').value;
   if (!input) { showToast('Enter text to encode'); return; }
-  const encoded = btoa(unescape(encodeURIComponent(input)));
+  // TextEncoder handles full UTF-8 range safely
+  const bytes = new TextEncoder().encode(input);
+  const encoded = btoa(String.fromCharCode(...bytes));
   const el = document.getElementById('b64-output');
   el.innerHTML = '';
   const row = document.createElement('div'); row.className = 'item';
@@ -1897,10 +1907,32 @@ async function generateBIP39() {
   const el          = document.getElementById('bip-output');
   el.innerHTML      = '';
 
+  // BIP-39 spec: ENT = entropy bits, CS = checksum bits = ENT/32, MS = (ENT+CS)/11 words
+  // wordCount → ENT: 12→128, 15→160, 18→192, 21→224, 24→256
+  const entBits     = wordCount * 11 - Math.floor(wordCount * 11 / 33);
+  const entBytes    = Math.ceil(entBits / 8);
+  const csBits      = Math.floor(entBits / 32); // = ENT/32
+
   for (let q = 0; q < qty; q++) {
-    // Generate wordCount random words from BIP-39 list
+    // 1. Generate entropy bytes
+    const entArr = randBytes(entBytes);
+
+    // 2. SHA-256 hash for checksum
+    const hashBuf   = await crypto.subtle.digest('SHA-256', entArr);
+    const hashByte  = new Uint8Array(hashBuf)[0];
+
+    // 3. Build full bit string: entropy bits + checksum bits
+    let bits = '';
+    for (const b of entArr) bits += b.toString(2).padStart(8, '0');
+    bits = bits.slice(0, entBits); // trim to exact ENT bits
+    const csByte = hashByte.toString(2).padStart(8, '0').slice(0, csBits);
+    bits += csByte;
+
+    // 4. Split into 11-bit groups → word indexes
     const words = [];
-    for (let i = 0; i < wordCount; i++) words.push(BIP39_WORDS[randInt(BIP39_WORDS.length)]);
+    for (let i = 0; i + 11 <= bits.length; i += 11) {
+      words.push(BIP39_WORDS[parseInt(bits.slice(i, i + 11), 2)]);
+    }
     const phrase = words.join(' ');
 
     const row = document.createElement('div'); row.className = 'item'; row.style.flexDirection = 'column'; row.style.alignItems = 'stretch';
