@@ -162,10 +162,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .qr-close:hover{color:var(--text-primary);}
 /* TOTP QR button */
 .totp-qr-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card2);cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .15s;width:100%;margin-top:8px;justify-content:center;}
-.totp-qr-btn:hover:not(:disabled){border-color:var(--rose);color:var(--rose);}
-.totp-qr-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.totp-qr-tooltip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text-muted);white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
-.totp-qr-tooltip.visible{display:block;}
+.totp-qr-btn:hover{border-color:var(--rose);color:var(--rose);}
+/* TOTP QR MODAL */
+.totp-qr-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;}
+.totp-qr-modal-overlay.open{display:flex;}
+.totp-qr-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;width:560px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;overflow:hidden;}
+.totp-qr-modal-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);}
+.totp-qr-modal-title{font-size:14px;font-weight:600;}
+.totp-qr-modal-body{display:flex;align-items:stretch;min-height:240px;}
+.totp-qr-modal-left{width:220px;flex-shrink:0;padding:16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:0;}
+.totp-qr-modal-right{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;}
 
 /* JWT DECODED VIEW */
 .jwt-decoded{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border:1px solid var(--border);margin-top:4px;color:var(--text-secondary);display:none;white-space:pre-wrap;word-break:break-all;flex:1;overflow-y:auto;}
@@ -754,21 +760,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </select>
         </div>
         <div class="field">
-          <label>Account name</label>
-          <input type="text" id="totp-account" class="inline-input" style="width:100%;margin-top:4px;" placeholder="user@example.com" oninput="updateTotpQrBtn()">
+          <label>Quantity <span class="val" id="totp-qty-val">5</span></label>
+          <input type="range" id="totp-qty" min="1" max="20" value="5" oninput="document.getElementById('totp-qty-val').textContent=this.value">
         </div>
-        <div class="field">
-          <label>Issuer</label>
-          <input type="text" id="totp-issuer" class="inline-input" style="width:100%;margin-top:4px;" placeholder="MyApp" oninput="updateTotpQrBtn()">
-        </div>
-          <div class="field" id="totp-qty-field">
-            <label>Quantity <span class="val" id="totp-qty-val">5</span></label>
-            <input type="range" id="totp-qty" min="1" max="20" value="5" oninput="document.getElementById('totp-qty-val').textContent=this.value">
-          </div>
         <button class="btn-primary rose" onclick="generateTOTP()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
-        <button class="totp-qr-btn" id="totp-qr-btn" disabled
-          onmouseenter="showTotpQrTooltip(event)" onmouseleave="hideTotpQrTooltip()"
-          onclick="generateTotpQR()">⬛ Generate Authenticator QR</button>
+        <button class="totp-qr-btn" onclick="openTotpQrModal()">⬛ Generate Authenticator QR</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -1152,7 +1148,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
     <div class="qr-popover-text" id="qrText"></div>
   </div>
 </div>
-<div class="totp-qr-tooltip" id="totpQrTooltip">Account name and Issuer are required to generate a scannable QR</div>
+<div class="totp-qr-modal-overlay" id="totpQrModal" onclick="if(event.target===this)closeTotpQrModal()">
+  <div class="totp-qr-modal">
+    <div class="totp-qr-modal-hd">
+      <span class="totp-qr-modal-title">⬛ Generate Authenticator QR</span>
+      <button class="modal-close" onclick="closeTotpQrModal()">✕</button>
+    </div>
+    <div class="totp-qr-modal-body">
+      <div class="totp-qr-modal-left">
+        <div class="field">
+          <label style="font-size:12px;">Account name</label>
+          <input type="text" id="totp-account" class="inline-input" style="width:100%;margin-top:4px;" placeholder="user@example.com">
+        </div>
+        <div class="field">
+          <label style="font-size:12px;">Issuer</label>
+          <input type="text" id="totp-issuer" class="inline-input" style="width:100%;margin-top:4px;" placeholder="MyApp">
+        </div>
+        <div class="field">
+          <label style="font-size:12px;">Secret</label>
+          <select id="totp-secret-select" class="inline-select" style="width:100%;margin-top:4px;"></select>
+        </div>
+        <button class="btn-primary rose" onclick="generateTotpQR()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate QR</button>
+      </div>
+      <div class="totp-qr-modal-right" id="totp-qr-output">
+        <div style="text-align:center;color:var(--text-muted);font-size:12px;font-family:'DM Sans',sans-serif;">
+          Enter account details<br>and click Generate QR
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="entropy-tip" id="entropyTip">
   <div class="tip-section-label" id="tip-effective-label">Effective Entropy</div>
   <div class="tip-row">
@@ -2632,43 +2657,62 @@ function closeQR() {
 }
 
 // TOTP QR
-function updateTotpQrBtn() {
-  const account  = document.getElementById('totp-account').value.trim();
-  const issuer   = document.getElementById('totp-issuer').value.trim();
-  const btn      = document.getElementById('totp-qr-btn');
-  const qtyField = document.getElementById('totp-qty-field');
-  const qtySlider = document.getElementById('totp-qty');
-  const qtyVal   = document.getElementById('totp-qty-val');
-  const filled   = !!(account && issuer);
-  if (btn) btn.disabled = !filled;
-  if (qtyField) qtyField.style.display = filled ? 'none' : '';
-  if (filled && qtySlider) { qtySlider.value = 1; if (qtyVal) qtyVal.textContent = '1'; }
+function openTotpQrModal() {
+  // Populate secret selector from current output
+  const sel = document.getElementById('totp-secret-select');
+  sel.innerHTML = '';
+  const items = document.querySelectorAll('#totp-output .item-text');
+  if (items.length === 0) {
+    const o = document.createElement('option');
+    o.value = ''; o.textContent = 'No secrets generated yet';
+    sel.appendChild(o);
+  } else {
+    items.forEach((item, i) => {
+      const raw = item.textContent.replace(/\s/g, '');
+      const o = document.createElement('option');
+      o.value = raw;
+      o.textContent = raw.length > 32 ? raw.slice(0, 32) + '…' : raw;
+      sel.appendChild(o);
+    });
+  }
+  // Reset output panel
+  document.getElementById('totp-qr-output').innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;font-family:\'DM Sans\',sans-serif;">Enter account details<br>and click Generate QR</div>';
+  document.getElementById('totpQrModal').classList.add('open');
 }
 
-function showTotpQrTooltip(e) {
-  const btn = document.getElementById('totp-qr-btn');
-  if (!btn || !btn.disabled) return;
-  const tip = document.getElementById('totpQrTooltip');
-  const r   = btn.getBoundingClientRect();
-  tip.style.left = r.left + 'px';
-  tip.style.top  = (r.top - 34) + 'px';
-  tip.classList.add('visible');
-}
-function hideTotpQrTooltip() {
-  document.getElementById('totpQrTooltip').classList.remove('visible');
+function closeTotpQrModal() {
+  document.getElementById('totpQrModal').classList.remove('open');
 }
 
 function generateTotpQR() {
   const account = document.getElementById('totp-account').value.trim();
   const issuer  = document.getElementById('totp-issuer').value.trim();
-  if (!account || !issuer) return;
-  // Get the most recently generated TOTP secret (first in list, raw without spaces)
-  const output = document.getElementById('totp-output');
-  const firstItem = output.querySelector('.item-text');
-  if (!firstItem) { showToast('Generate a TOTP secret first'); return; }
-  const secret = firstItem.textContent.replace(/\s/g, '');
+  const secret  = document.getElementById('totp-secret-select').value;
+  if (!account) { showToast('Enter an account name'); return; }
+  if (!issuer)  { showToast('Enter an issuer'); return; }
+  if (!secret)  { showToast('Generate a TOTP secret first'); return; }
   const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-  openQR(document.getElementById('totp-qr-btn'), uri);
+  const out = document.getElementById('totp-qr-output');
+  out.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;';
+  const canvas = document.createElement('div');
+  try {
+    new QRCode(canvas, {
+      text: uri, width: 180, height: 180,
+      colorDark:  document.body.classList.contains('light') ? '#000000' : '#ffffff',
+      colorLight: document.body.classList.contains('light') ? '#ffffff' : '#1a1a1f',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  } catch(e) { canvas.textContent = 'QR generation failed'; }
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:\'DM Sans\',sans-serif;text-align:center;';
+  label.textContent = 'QR encodes this value exactly';
+  const secretLabel = document.createElement('div');
+  secretLabel.style.cssText = 'font-size:9px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;word-break:break-all;text-align:center;max-width:180px;';
+  secretLabel.textContent = secret;
+  wrap.appendChild(canvas); wrap.appendChild(label); wrap.appendChild(secretLabel);
+  out.appendChild(wrap);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2677,7 +2721,6 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettings(merged);
   saveSettings();
   rebuildTabBar();
-  updateTotpQrBtn();
   updateNoveltyToggleVisibility();
   document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
     .forEach(el => el.addEventListener('change', saveSettings));
