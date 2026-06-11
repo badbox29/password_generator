@@ -1342,7 +1342,7 @@ function calcEntropyForPassword(pw, poolSize) {
     if (/[a-z]/.test(pw)) pool += 26;
     if (/[A-Z]/.test(pw)) pool += 26;
     if (/[0-9]/.test(pw)) pool += 10;
-    if (/[^a-zA-Z0-9]/.test(pw)) pool += 24; // corrected special pool size
+    if (/[^a-zA-Z0-9]/.test(pw)) pool += 32; // corrected special pool size
     poolSize = pool;
   }
   return poolSize > 0 ? Math.round(pw.length * Math.log2(poolSize)) : 0;
@@ -1374,7 +1374,7 @@ function calcTheoreticalEntropy(str) {
   if (/[a-z]/.test(str)) pool += 26;
   if (/[A-Z]/.test(str)) pool += 26;
   if (/[0-9]/.test(str)) pool += 10;
-  if (/[^a-zA-Z0-9]/.test(str)) pool += 24;
+  if (/[^a-zA-Z0-9]/.test(str)) pool += 32;
   return pool > 0 ? Math.round(str.length * Math.log2(pool)) : 0;
 }
 
