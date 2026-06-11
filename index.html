@@ -1400,13 +1400,13 @@ function showTip(el, effectiveBits, theoreticalBits) {
   bar.style.width      = Math.min(100, effectiveBits / 1.28) + '%';
   bar.style.background = color;
   const r = el.getBoundingClientRect();
-  const tipH  = same ? 90 : 130; // approximate tooltip height
+  // Position after making visible so we can measure actual height
+  _tip.classList.add('visible');
+  const tipH  = _tip.offsetHeight;
   const left  = r.left + r.width / 2;
-  // Prefer above the row; flip below if not enough room
   const top   = (r.top - tipH - 6 >= 8) ? (r.top - tipH - 6) : (r.bottom + 6);
   _tip.style.left = left + 'px';
   _tip.style.top  = top  + 'px';
-  _tip.classList.add('visible');
 }
 function hideTip() { _tip.classList.remove('visible'); }
 
