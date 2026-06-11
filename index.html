@@ -2356,6 +2356,7 @@ const SETTINGS_DEFAULTS = {
   ppCaps: true, ppExtras: true, ppSep: '-', ppSepRandom: false, ppWordlist: 'standard-group-words', ppFloor: '0',
   noveltyEnabled: false, noveltyMode: false, noveltyLists: [],
   pinLength: '6', pinQty: '15', pinSpaces: false,
+  totpAccount: '', totpIssuer: '',
   darkMode: true,
   generators: GENERATOR_DEFAULTS,
   customLists: [],
@@ -2414,6 +2415,8 @@ function collectSettings() {
     pinLength:  document.getElementById('pin-length').value,
     pinQty:     document.getElementById('pin-qty').value,
     pinSpaces:  document.getElementById('pin-spaces').checked,
+    totpAccount: document.getElementById('totp-account').value,
+    totpIssuer:  document.getElementById('totp-issuer').value,
     darkMode:   !document.body.classList.contains('light'),
     generators: gens,
     customLists: window._customLists.map(l => ({ name: l.name, words: l.words })),
@@ -2449,6 +2452,8 @@ function applySettings(s) {
   set('pin-length', s.pinLength); lbl('pin-len-val', s.pinLength);
   set('pin-qty',    s.pinQty);    lbl('pin-qty-val',  s.pinQty);
   chk('pin-spaces', s.pinSpaces);
+  set('totp-account', s.totpAccount);
+  set('totp-issuer',  s.totpIssuer);
 
   if (s.darkMode === false) {
     document.body.classList.add('light');
@@ -2672,6 +2677,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applySettings(merged);
   saveSettings();
   rebuildTabBar();
+  updateTotpQrBtn();
   updateNoveltyToggleVisibility();
   document.querySelectorAll('input[type=range], input[type=checkbox], input[type=text], select')
     .forEach(el => el.addEventListener('change', saveSettings));
