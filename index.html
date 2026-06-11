@@ -538,11 +538,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <div class="field" style="margin-bottom:6px;">
             <label style="margin-bottom:5px;display:block;">Capitalization</label>
             <div class="seg-ctrl" id="pp-caps-ctrl" style="width:100%;">
-              <button class="seg-btn active" onclick="setPpCapsMode('random')">Random</button>
-              <button class="seg-btn" onclick="setPpCapsMode('title')">Title</button>
-              <button class="seg-btn" onclick="setPpCapsMode('upper')">UPPER</button>
-              <button class="seg-btn" onclick="setPpCapsMode('lower')">lower</button>
-              <button class="seg-btn" onclick="setPpCapsMode('none')">None</button>
+              <button class="seg-btn active" onclick="setPpCapsMode('random')" style="padding:5px 3px;font-size:11px;">Random</button>
+              <button class="seg-btn" onclick="setPpCapsMode('title')" style="padding:5px 3px;font-size:11px;">Title</button>
+              <button class="seg-btn" onclick="setPpCapsMode('upper')" style="padding:5px 3px;font-size:11px;">UPPER</button>
+              <button class="seg-btn" onclick="setPpCapsMode('lower')" style="padding:5px 3px;font-size:11px;">lower</button>
+              <button class="seg-btn" onclick="setPpCapsMode('none')" style="padding:5px 3px;font-size:11px;">None</button>
             </div>
           </div>
           <label class="check-row"><input type="checkbox" id="pp-extras" checked> Inject numbers / special chars</label>
@@ -807,7 +807,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           <div class="card-title">Strength Checker</div>
         </div>
         <div class="field" style="margin-top:8px;">
-          <label>Password to analyse</label>
+          <label>Password to analyze</label>
           <input type="password" id="checker-input" class="inline-input" style="width:100%;margin-top:4px;" placeholder="Paste a password…" oninput="runStrengthCheck()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         </div>
         <label class="check-row" style="margin-top:4px;">
@@ -1210,13 +1210,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
       <div class="em-section">
         <span class="em-tag theoretical">Theoretical entropy</span>
-        <h3>What a generic attacker faces</h3>
+        <h3>Based on apparent character space</h3>
         <p>Calculated by treating every character as if it could be anything from the full character set used — uppercase, lowercase, digits, symbols. A generic brute-force tool makes no assumptions about how your password was built, so it must search the entire character space. This is the upper bound on difficulty.</p>
       </div>
 
       <div class="em-section">
         <span class="em-tag effective">Effective entropy</span>
-        <h3>What an informed attacker faces</h3>
+        <h3>Based on actual generation space</h3>
         <p>Accounts for how the password was actually constructed. A pronounceable password uses consonant-vowel patterns that shrink the real search space — even if the characters look random. A passphrase draws from a known word list. An attacker who knows the generation method works against effective entropy, not theoretical.</p>
       </div>
 
@@ -1225,7 +1225,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
       <div class="em-section">
         <h3>Which should I trust?</h3>
         <p>Theoretical entropy is a useful upper-bound reference — it shows how hard the password would be to crack if the attacker had no knowledge of how it was generated. Effective entropy is the practical, conservative estimate used by this tool, because it reflects the actual space the generator worked from.</p>
-        <p style="margin-top:8px;">When in doubt, trust <strong style="color:var(--blue);">effective entropy</strong>. Strength ratings and minimum-strength thresholds in this tool are always based on effective entropy — the honest, conservative measure.</p>
+        <p style="margin-top:8px;">When in doubt, trust <strong style="color:var(--blue);">effective entropy</strong>. Strength ratings and minimum-strength thresholds in this tool are always based on effective entropy — the practical, conservative measure.</p>
       </div>
     </div>
   </div>
