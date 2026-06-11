@@ -1776,7 +1776,7 @@ function generatePassphrase() {
   el.innerHTML = '';
   phrases.forEach(({text, bits}) => {
     const row  = document.createElement('div');  row.className = 'item';
-    const span = document.createElement('span'); span.className = 'item-text purple'; span.textContent = text;
+    const span = document.createElement('span'); span.className = 'item-text blue'; span.textContent = text;
     const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
     btn.addEventListener('click', e => { e.stopPropagation(); navigator.clipboard.writeText(text).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
     const theoBits = calcTheoreticalEntropy(text);
@@ -1820,7 +1820,7 @@ function generatePIN() {
   // Entropy is only accurate when no restrictions are applied.
   // Restrictions (no-seq, no-rep) reduce the valid space unpredictably.
   const pinEntropyFn = (noSeq || noRep) ? null : (() => Math.round(length * Math.log2(10)));
-  renderItems('pin-output', pins, 'green', pinEntropyFn, pinEntropyFn);
+  renderItems('pin-output', pins, 'blue', pinEntropyFn, pinEntropyFn);
   document.getElementById('pin-count').textContent = qty + ' generated';
   document.getElementById('pin-copy-all').style.display = '';
   saveSettings();
@@ -1849,7 +1849,7 @@ function generateUsername() {
     results.push(useSep ? parts.join(sepChar) : parts.join(''));
   }
   window._lastUN = results;
-  renderItems('un-output', results, 'purple');
+  renderItems('un-output', results, 'blue');
   document.getElementById('un-count').textContent = qty + ' generated';
   document.getElementById('un-copy-all').style.display = '';
 }
