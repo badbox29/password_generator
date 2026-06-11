@@ -149,6 +149,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .item-text.rose{color:var(--rose);}
 .copy-btn{cursor:pointer;opacity:0.45;transition:opacity .2s;flex-shrink:0;font-size:13px;padding:2px 4px;border-radius:4px;margin-top:1px;}
 .copy-btn:hover{opacity:1;background:var(--bg-card2);}
+/* QR POPOVER */
+.qr-btn{cursor:pointer;opacity:0.45;transition:opacity .2s;flex-shrink:0;font-size:13px;padding:2px 4px;border-radius:4px;margin-top:1px;}
+.qr-btn:hover{opacity:1;background:var(--bg-card2);}
+.qr-popover{display:none;position:fixed;z-index:9999;background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.qr-popover.visible{display:block;}
+.qr-popover-inner{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.qr-popover-canvas{border-radius:6px;overflow:hidden;}
+.qr-popover-text{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);max-width:176px;word-break:break-all;text-align:center;line-height:1.4;}
+.qr-popover-label{font-size:10px;color:var(--text-muted);text-align:center;font-family:'DM Sans',sans-serif;}
+.qr-close{position:absolute;top:6px;right:8px;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;line-height:1;padding:2px;}
+.qr-close:hover{color:var(--text-primary);}
+/* TOTP QR button */
+.totp-qr-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card2);cursor:pointer;font-size:12px;font-weight:600;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .15s;width:100%;margin-top:8px;justify-content:center;}
+.totp-qr-btn:hover:not(:disabled){border-color:var(--rose);color:var(--rose);}
+.totp-qr-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.totp-qr-tooltip{display:none;position:fixed;background:var(--bg-input);border:1px solid var(--border-light);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text-muted);white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+.totp-qr-tooltip.visible{display:block;}
 
 /* JWT DECODED VIEW */
 .jwt-decoded{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;padding:8px 10px;background:var(--bg-card2);border-radius:6px;border:1px solid var(--border);margin-top:4px;color:var(--text-secondary);display:none;white-space:pre-wrap;word-break:break-all;flex:1;overflow-y:auto;}
@@ -261,6 +278,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .wl-select:focus{border-color:var(--purple);}
 </style>
 </head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <body>
 
 <div class="topbar">
@@ -356,6 +374,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
             <input type="checkbox" onchange="toggleGenerator('bip39',this.checked)">
             <span class="gen-toggle-icon">🌱</span>
             <div class="gen-toggle-info"><span class="gen-toggle-label">BIP-39 Mnemonics</span><span class="gen-toggle-desc">Seed phrases</span></div>
+          </label>
+        </div>
+
+        <div class="modal-cat-label">Tools</div>
+        <div class="gen-toggle-grid">
+          <label class="gen-toggle clr-cyan" id="tog-hash">
+            <input type="checkbox" onchange="toggleGenerator('hash',this.checked)">
+            <span class="gen-toggle-icon">#️⃣</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">Hash</span><span class="gen-toggle-desc">SHA-256 / SHA-512</span></div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-hmac">
+            <input type="checkbox" onchange="toggleGenerator('hmac',this.checked)">
+            <span class="gen-toggle-icon">🔏</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">HMAC</span><span class="gen-toggle-desc">Message authentication</span></div>
+          </label>
+          <label class="gen-toggle clr-cyan" id="tog-qrgen">
+            <input type="checkbox" onchange="toggleGenerator('qrgen',this.checked)">
+            <span class="gen-toggle-icon">⬛</span>
+            <div class="gen-toggle-info"><span class="gen-toggle-label">QR Generator</span><span class="gen-toggle-desc">Text to QR code</span></div>
           </label>
         </div>
       </div>
@@ -716,10 +753,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
           </select>
         </div>
         <div class="field">
+          <label>Account name</label>
+          <input type="text" id="totp-account" class="inline-input" style="width:100%;margin-top:4px;" placeholder="user@example.com" oninput="updateTotpQrBtn()">
+        </div>
+        <div class="field">
+          <label>Issuer</label>
+          <input type="text" id="totp-issuer" class="inline-input" style="width:100%;margin-top:4px;" placeholder="MyApp" oninput="updateTotpQrBtn()">
+        </div>
+        <div class="field">
           <label>Quantity <span class="val" id="totp-qty-val">5</span></label>
           <input type="range" id="totp-qty" min="1" max="20" value="5" oninput="document.getElementById('totp-qty-val').textContent=this.value">
         </div>
         <button class="btn-primary rose" onclick="generateTOTP()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate</button>
+        <button class="totp-qr-btn" id="totp-qr-btn" disabled
+          onmouseenter="showTotpQrTooltip(event)" onmouseleave="hideTotpQrTooltip()"
+          onclick="generateTotpQR()">⬛ Generate Authenticator QR</button>
       </div>
       <div class="section-right">
         <div class="output-header">
@@ -958,6 +1006,105 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 
   </div><!-- /tab-crypto -->
 
+  <!-- ══════════════════ TOOLS TAB ══════════════════ -->
+  <div class="tab-page" id="tab-tools">
+
+    <!-- HASH -->
+    <div class="section-card" id="section-hash" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">#️⃣</div>
+          <div class="card-title">Hash</div>
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>Algorithm</label>
+          <select class="inline-select" id="hash-alg" style="width:100%;margin-top:4px;">
+            <option value="SHA-256" selected>SHA-256</option>
+            <option value="SHA-512">SHA-512</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Input</label>
+          <textarea id="hash-input" class="inline-input" style="width:100%;height:80px;resize:vertical;margin-top:4px;" placeholder="Enter text to hash"></textarea>
+        </div>
+        <button class="btn-primary cyan" onclick="generateHash()" style="margin-top:auto;"><span class="bolt">⚡</span> Hash</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label" id="hash-output-label">SHA-256 Hash</span>
+          <div class="output-actions">
+            <button class="btn-ghost" id="hash-copy-all" onclick="copyAll('hash')" style="display:none;">Copy</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="hash-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">hash</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HMAC -->
+    <div class="section-card" id="section-hmac" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">🔏</div>
+          <div class="card-title">HMAC</div>
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>Algorithm</label>
+          <select class="inline-select" id="hmac-alg" style="width:100%;margin-top:4px;">
+            <option value="SHA-256" selected>HMAC-SHA-256</option>
+            <option value="SHA-512">HMAC-SHA-512</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Secret key</label>
+          <input type="text" id="hmac-key" class="inline-input" style="width:100%;margin-top:4px;" placeholder="Signing key">
+        </div>
+        <div class="field">
+          <label>Message</label>
+          <textarea id="hmac-message" class="inline-input" style="width:100%;height:70px;resize:vertical;margin-top:4px;" placeholder="Message to sign"></textarea>
+        </div>
+        <div class="notice" style="margin-top:8px;">The secret key is the sensitive value. The message is public input. Output is an authentication tag, not an encryption result.</div>
+        <button class="btn-primary cyan" onclick="generateHMAC()" style="margin-top:auto;"><span class="bolt">⚡</span> Sign</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label" id="hmac-output-label">HMAC Tag</span>
+          <div class="output-actions">
+            <button class="btn-ghost" id="hmac-copy-all" onclick="copyAll('hmac')" style="display:none;">Copy</button>
+          </div>
+        </div>
+        <div class="output-body wide" id="hmac-output">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">hmac</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR GENERATOR -->
+    <div class="section-card" id="section-qrgen" style="display:none">
+      <div class="section-left">
+        <div class="card-hd">
+          <div class="card-icon ci-cyan">⬛</div>
+          <div class="card-title">QR Generator</div>
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>Input text</label>
+          <textarea id="qrgen-input" class="inline-input" style="width:100%;height:100px;resize:vertical;margin-top:4px;" placeholder="Text or URL to encode"></textarea>
+        </div>
+        <button class="btn-primary cyan" onclick="generateQRCard()" style="margin-top:auto;"><span class="bolt">⚡</span> Generate QR</button>
+      </div>
+      <div class="section-right">
+        <div class="output-header">
+          <span class="output-label">QR Code</span>
+        </div>
+        <div class="output-body wide" id="qrgen-output" style="display:flex;align-items:center;justify-content:center;">
+          <div class="output-empty"><span class="watermark" style="color:var(--cyan);font-size:28px;">qr code</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-tools -->
+
 </div><!-- /wrap -->
 
 <!-- ABOUT ENTROPY MODAL -->
@@ -996,6 +1143,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="qr-popover" id="qrPopover">
+  <button class="qr-close" onclick="closeQR()">✕</button>
+  <div class="qr-popover-inner">
+    <div class="qr-popover-canvas" id="qrCanvas"></div>
+    <div class="qr-popover-label">QR encodes this value exactly</div>
+    <div class="qr-popover-text" id="qrText"></div>
+  </div>
+</div>
+<div class="totp-qr-tooltip" id="totpQrTooltip">Account name and Issuer are required to generate a scannable QR</div>
 <div class="entropy-tip" id="entropyTip">
   <div class="tip-section-label" id="tip-effective-label">Effective Entropy</div>
   <div class="tip-row">
@@ -1130,6 +1286,9 @@ function showTip(el, effectiveBits, theoreticalBits) {
 function hideTip() { _tip.classList.remove('visible'); }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
+// Generators that get inline QR buttons
+const QR_ENABLED_OUTPUTS = new Set(['pw-output','pp-output','ak-output','wh-output']);
+
 function renderItems(outputId, items, colorClass, entropyFn, theoreticalFn) {
   const el = document.getElementById(outputId);
   el.innerHTML = '';
@@ -1137,6 +1296,7 @@ function renderItems(outputId, items, colorClass, entropyFn, theoreticalFn) {
     el.innerHTML = '<div class="output-empty"><span class="watermark" style="font-size:18px;opacity:0.15;color:var(--text-muted);">no results</span></div>';
     return;
   }
+  const showQR = QR_ENABLED_OUTPUTS.has(outputId);
   items.forEach(text => {
     const row  = document.createElement('div');  row.className = 'item';
     const span = document.createElement('span'); span.className = 'item-text ' + colorClass; span.textContent = text;
@@ -1151,7 +1311,16 @@ function renderItems(outputId, items, colorClass, entropyFn, theoreticalFn) {
       row.addEventListener('mouseenter', () => showTip(row, effectiveBits, theoreticalBits));
       row.addEventListener('mouseleave', hideTip);
     }
-    row.appendChild(span); row.appendChild(btn);
+    if (showQR) {
+      const qrBtn = document.createElement('span');
+      qrBtn.className = 'qr-btn';
+      qrBtn.textContent = '⬛';
+      qrBtn.title = 'Show QR code';
+      qrBtn.addEventListener('click', e => { e.stopPropagation(); openQR(qrBtn, text); });
+      row.appendChild(span); row.appendChild(btn); row.appendChild(qrBtn);
+    } else {
+      row.appendChild(span); row.appendChild(btn);
+    }
     el.appendChild(row);
   });
 }
@@ -1213,6 +1382,7 @@ const TAB_DEFS = [
   { id: 'security',  label: 'Security',  always: false },
   { id: 'developer', label: 'Developer', always: false },
   { id: 'crypto',    label: 'Crypto',    always: false },
+  { id: 'tools',     label: 'Tools',     always: false },
 ];
 
 // which generators belong to which tab
@@ -1221,6 +1391,7 @@ const GEN_TAB = {
   apikey:'security', recovery:'security', totp:'security',
   uuid:'developer', jwt:'developer', webhook:'developer', base64:'developer',
   bip39:'crypto',
+  hash:'tools', hmac:'tools', qrgen:'tools',
 };
 
 let _activeTab = 'general';
@@ -1262,8 +1433,8 @@ function rebuildTabBar() {
 }
 
 // ── GENERATOR TOGGLES ─────────────────────────────────────────────────────────
-const GENERATOR_IDS = ['password','passphrase','pin','username','apikey','recovery','totp','uuid','jwt','webhook','base64','bip39'];
-const GENERATOR_DEFAULTS = { password:true, passphrase:true, pin:false, username:false, apikey:false, recovery:false, totp:false, uuid:false, jwt:false, webhook:false, base64:false, bip39:false };
+const GENERATOR_IDS = ['password','passphrase','pin','username','apikey','recovery','totp','uuid','jwt','webhook','base64','bip39','hash','hmac','qrgen'];
+const GENERATOR_DEFAULTS = { password:true, passphrase:true, pin:false, username:false, apikey:false, recovery:false, totp:false, uuid:false, jwt:false, webhook:false, base64:false, bip39:false, hash:false, hmac:false, qrgen:false };
 
 function toggleGenerator(name, enabled) {
   const tog = document.getElementById('tog-' + name);
@@ -2325,8 +2496,150 @@ function loadSettings() {
   try { return JSON.parse(raw); } catch(e) { return null; }
 }
 
+// ── HASH ──────────────────────────────────────────────────────────────────────
+async function generateHash() {
+  const alg   = document.getElementById('hash-alg').value;
+  const input = document.getElementById('hash-input').value;
+  if (!input) { showToast('Enter text to hash'); return; }
+  const buf  = await crypto.subtle.digest(alg, new TextEncoder().encode(input));
+  const hex  = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  const el   = document.getElementById('hash-output');
+  el.innerHTML = '';
+  const row  = document.createElement('div'); row.className = 'item';
+  const span = document.createElement('span'); span.className = 'item-text cyan'; span.textContent = hex;
+  const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+  btn.addEventListener('click', () => { navigator.clipboard.writeText(hex).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
+  row.appendChild(span); row.appendChild(btn); el.appendChild(row);
+  document.getElementById('hash-output-label').textContent = alg + ' Hash';
+  document.getElementById('hash-copy-all').style.display = '';
+}
+
+// ── HMAC ──────────────────────────────────────────────────────────────────────
+async function generateHMAC() {
+  const alg     = document.getElementById('hmac-alg').value;
+  const key     = document.getElementById('hmac-key').value;
+  const message = document.getElementById('hmac-message').value;
+  if (!key)     { showToast('Enter a secret key'); return; }
+  if (!message) { showToast('Enter a message'); return; }
+  const enc        = new TextEncoder();
+  const keyMat     = await crypto.subtle.importKey('raw', enc.encode(key), { name:'HMAC', hash: alg }, false, ['sign']);
+  const sigBuf     = await crypto.subtle.sign('HMAC', keyMat, enc.encode(message));
+  const hex        = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  const el         = document.getElementById('hmac-output');
+  el.innerHTML     = '';
+  const row  = document.createElement('div'); row.className = 'item';
+  const span = document.createElement('span'); span.className = 'item-text cyan'; span.textContent = hex;
+  const btn  = document.createElement('span'); btn.className = 'copy-btn'; btn.textContent = '📋';
+  btn.addEventListener('click', () => { navigator.clipboard.writeText(hex).then(() => { btn.textContent = '✔'; setTimeout(() => btn.textContent = '📋', 1000); }); });
+  row.appendChild(span); row.appendChild(btn); el.appendChild(row);
+  document.getElementById('hmac-output-label').textContent = 'HMAC Tag (' + alg + ')';
+  document.getElementById('hmac-copy-all').style.display = '';
+}
+
+// ── QR GENERATOR CARD ─────────────────────────────────────────────────────────
+function generateQRCard() {
+  const input = document.getElementById('qrgen-input').value.trim();
+  if (!input) { showToast('Enter text to encode'); return; }
+  const el = document.getElementById('qrgen-output');
+  el.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;';
+  const canvas = document.createElement('div');
+  try {
+    new QRCode(canvas, {
+      text: input,
+      width: 200, height: 200,
+      colorDark:  document.body.classList.contains('light') ? '#000000' : '#ffffff',
+      colorLight: document.body.classList.contains('light') ? '#ffffff' : '#1a1a1f',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  } catch(e) { canvas.textContent = 'QR generation failed'; }
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:JetBrains Mono,monospace;word-break:break-all;max-width:200px;text-align:center;';
+  label.textContent = input;
+  wrap.appendChild(canvas); wrap.appendChild(label);
+  el.appendChild(wrap);
+}
+let _qrInstance = null;
+let _qrAnchor   = null;
+
+function openQR(anchorEl, text) {
+  const pop = document.getElementById('qrPopover');
+  // Toggle off if already showing for this anchor
+  if (_qrAnchor === anchorEl && pop.classList.contains('visible')) {
+    closeQR(); return;
+  }
+  closeQR();
+  _qrAnchor = anchorEl;
+  const canvas = document.getElementById('qrCanvas');
+  canvas.innerHTML = '';
+  try {
+    _qrInstance = new QRCode(canvas, {
+      text,
+      width:  176,
+      height: 176,
+      colorDark:  document.body.classList.contains('light') ? '#000000' : '#ffffff',
+      colorLight: document.body.classList.contains('light') ? '#ffffff' : '#1a1a1f',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  } catch(e) { canvas.textContent = 'QR generation failed'; }
+  document.getElementById('qrText').textContent = text;
+  // Position popover
+  const r = anchorEl.getBoundingClientRect();
+  pop.style.left = Math.max(8, r.right - 200) + 'px';
+  pop.style.top  = (r.bottom + 6) + 'px';
+  pop.classList.add('visible');
+  // Close on outside click
+  setTimeout(() => document.addEventListener('click', _qrOutsideClick), 0);
+}
+
+function _qrOutsideClick(e) {
+  const pop = document.getElementById('qrPopover');
+  if (!pop.contains(e.target) && e.target !== _qrAnchor) closeQR();
+}
+
+function closeQR() {
+  document.getElementById('qrPopover').classList.remove('visible');
+  document.getElementById('qrCanvas').innerHTML = '';
+  _qrInstance = null; _qrAnchor = null;
+  document.removeEventListener('click', _qrOutsideClick);
+}
+
+// TOTP QR
+function updateTotpQrBtn() {
+  const account = document.getElementById('totp-account').value.trim();
+  const issuer  = document.getElementById('totp-issuer').value.trim();
+  const btn     = document.getElementById('totp-qr-btn');
+  if (btn) btn.disabled = !(account && issuer);
+}
+
+function showTotpQrTooltip(e) {
+  const btn = document.getElementById('totp-qr-btn');
+  if (!btn || !btn.disabled) return;
+  const tip = document.getElementById('totpQrTooltip');
+  const r   = btn.getBoundingClientRect();
+  tip.style.left = r.left + 'px';
+  tip.style.top  = (r.top - 34) + 'px';
+  tip.classList.add('visible');
+}
+function hideTotpQrTooltip() {
+  document.getElementById('totpQrTooltip').classList.remove('visible');
+}
+
+function generateTotpQR() {
+  const account = document.getElementById('totp-account').value.trim();
+  const issuer  = document.getElementById('totp-issuer').value.trim();
+  if (!account || !issuer) return;
+  // Get the most recently generated TOTP secret (first in list, raw without spaces)
+  const output = document.getElementById('totp-output');
+  const firstItem = output.querySelector('.item-text');
+  if (!firstItem) { showToast('Generate a TOTP secret first'); return; }
+  const secret = firstItem.textContent.replace(/\s/g, '');
+  const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+  openQR(document.getElementById('totp-qr-btn'), uri);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  rebuildWordListSelector();
   const saved   = loadSettings();
   const merged  = migrateSettings(saved);
   applySettings(merged);
@@ -2339,7 +2652,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <div style="text-align:center;padding:24px 0 32px;display:flex;align-items:center;justify-content:center;gap:10px;">
   <span style="font-size:13px;color:var(--text-muted);font-family:'DM Sans',sans-serif;letter-spacing:.01em;">Reliquary</span>
-  <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--blue);">v1.5</span>
+  <span style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--blue);">v1.6</span>
 </div>
 
 </body>
