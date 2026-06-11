@@ -44,8 +44,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .tab-btn.active{background:var(--bg-card);color:var(--text-primary);border-color:var(--border);border-bottom-color:var(--bg-card);}
 
 /* when tabs are showing, the wrap needs no extra top gap */
-/* active tab butts flush against card — square top-left corner only */
-.tabs-nav.visible + .tab-page.active > .section-card:first-child{border-top-left-radius:0;}
+/* square top-left corner of first card whenever tabs are showing */
+.tabs-nav.visible ~ .tab-page > .section-card:first-child{border-top-left-radius:0;}
 .wrap.tabs-showing{padding-top:16px;}
 
 /* LAYOUT */
