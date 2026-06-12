@@ -16,19 +16,22 @@ https://badbox29.github.io/password_generator/
 
 - **Multiple generator types** — organized into five tabs: General, Security, Developer, Crypto, and Tools
 - **General tab** — Passwords (random, memorable, pronounceable), Passphrases, PINs, Usernames
-- **Security tab** — API Keys, Recovery Codes, TOTP Secrets
-- **Developer tab** — UUIDs, JSON Web Tokens, Webhook Secrets, Base64 Encoder
+- **Security tab** — API Keys, Recovery Codes, TOTP Secrets, Strength Checker
+- **Developer tab** — UUIDs, JSON Web Tokens, Webhook Secrets, Base64 Encoder, Nano ID
 - **Crypto tab** — BIP-39 Mnemonics with optional derived seed hex
 - **Tools tab** — Hash (SHA-256/SHA-512), HMAC (message authentication tags), QR Generator (arbitrary text to QR code)
 - **Entropy display** — hover tooltips on generated output show both theoretical entropy (full character set) and effective entropy (based on actual generation structure); strength ratings use effective entropy throughout; simplified single-value tooltip for purely random generators where the two values are equal
 - **Minimum entropy floor** — password and passphrase generators include a floor slider that filters output to only include results meeting the set threshold; words-per-phrase and password length auto-adjust when the floor exceeds what current settings can achieve
-- **QR codes** — inline QR popover on Passwords, Passphrases, API Keys, and Webhook Secrets; dedicated QR Generator card in the Tools tab; TOTP card generates a fully spec-compliant `otpauth://` URI scannable by any authenticator app (requires Account name and Issuer)
+- **Passphrase capitalization modes** — five options via segmented control: Random (per-character, adds entropy), Title, UPPER, lower, None; only Random mode contributes entropy bits
+- **QR codes** — inline QR popover on Passwords, Passphrases, API Keys, and Webhook Secrets; dedicated QR Generator card in the Tools tab; TOTP card has a standalone "Generate Authenticator QR" modal that generates its own secret and produces a fully spec-compliant `otpauth://` URI scannable by any authenticator app
+- **Strength Checker** — theoretical, character-set based entropy estimator in the Security tab; not pattern-aware; input is never stored or transmitted
+- **Nano ID** — short URL-safe unique IDs in the Developer tab; configurable length, five preset alphabets, and a custom alphabet option; uses rejection sampling for unbiased generation
 - **Word lists** — built-in curated word list; import custom `.txt` word lists via Settings; lists are stored in localStorage and deduplicated when combined; prefix-based grouping merges related lists automatically in the selector
 - **Novelty word lists** — a separate novelty list system for themed passphrase generation; loaded and managed independently from standard lists; activated per-session via a toggle on the Passphrases card; same prefix-grouping rules apply
 - **Settings modal** — toggle individual generators on/off; manage standard and novelty word lists in separate tabs; active generators persist across sessions
 - **Tab system** — tabs appear only when non-General generators are enabled; each tab shows only its category's active generators
 - **Cryptographically secure RNG** — uses `crypto.getRandomValues()` with rejection sampling to eliminate modulo bias throughout
-- **BIP-39 spec compliance** — mnemonics use proper entropy + SHA-256 checksum generation per the BIP-39 specification; output is accepted by standards-compliant wallets
+- **BIP-39 spec compliance** — mnemonics use proper entropy + SHA-256 checksum generation per the BIP-39 specification with the complete canonical 2,048-word list; output is accepted by standards-compliant wallets
 - **Copy support** — per-item copy button and Copy All on every generator
 - **Dark/light mode** — full theme toggle
 - **localStorage persistence** — all settings, sliders, word list contents, and generator states saved and restored automatically with forward-compatible migration
@@ -96,13 +99,13 @@ Novelty lists use the same passphrase generation engine — capitalization, inje
 
 ### 4. TOTP Authenticator QR Codes
 
-The TOTP Secrets card can generate a QR code scannable directly by authenticator apps (Google Authenticator, Authy, etc.):
+The TOTP Secrets card includes a standalone **Generate Authenticator QR** button that opens a focused modal. The modal generates its own TOTP secret independently — no need to generate on the main card first.
 
-1. Enter an **Account name** (e.g. `user@example.com`) and **Issuer** (e.g. `MyApp`) in the fields on the card.
-2. Generate a TOTP secret.
-3. Click **Generate Authenticator QR** — the button activates once both fields have content.
+1. Click **Generate Authenticator QR** on the TOTP Secrets card.
+2. Enter an **Account name** (e.g. `user@example.com`), **Issuer** (e.g. `MyApp`), and select a key length.
+3. Click **Generate QR** — the QR code renders on the right alongside the raw secret and a copy button.
 
-The QR encodes a fully spec-compliant `otpauth://totp/` URI including algorithm, digits, and period parameters. The first generated secret in the current batch is used.
+The QR encodes a fully spec-compliant `otpauth://totp/` URI including algorithm, digits, and period parameters, scannable directly by Google Authenticator, Authy, and other TOTP apps.
 
 ---
 
@@ -113,17 +116,19 @@ The QR encodes a fully spec-compliant `otpauth://totp/` URI including algorithm,
 | General | Passwords (random) | `length × log2(pool size)` |
 | General | Passwords (memorable) | `log2(word list) + pad length × log2(pad pool)` |
 | General | Passwords (pronounceable) | `syllables × log2(consonants × vowels) + caps + numbers` |
-| General | Passphrases | `words × log2(list size) + injection + separators + caps` |
+| General | Passphrases | `words × log2(list size) + injection + separators + caps (Random mode only)` |
 | General | PINs | `digits × log2(10)` — hidden when sequential/repeat restrictions are enabled |
 | General | Usernames | — |
 | Security | API Keys | `length × log2(16 or 62)` depending on format |
 | Security | Recovery Codes | `chunks × size × log2(32)` (Crockford base32) |
 | Security | TOTP Secrets | `byte length × 8` |
+| Security | Strength Checker | — (theoretical estimator, not a generator) |
 | Developer | UUIDs | — |
 | Developer | JSON Web Tokens | — |
 | Developer | Webhook Secrets | `length × log2(16 or 62)` depending on format |
 | Developer | Base64 Encoder | `bytes × 8` (Generate mode only) |
-| Crypto | BIP-39 Mnemonics | `word count × log2(2048) = word count × 11` |
+| Developer | Nano ID | `length × log2(alphabet size)` |
+| Crypto | BIP-39 Mnemonics | `entBits` where `entBits = wordCount × 11 − floor(wordCount × 11 / 33)` |
 | Tools | Hash | — (transformation, not generation) |
 | Tools | HMAC | — (authentication tag) |
 | Tools | QR Generator | — |
@@ -136,10 +141,12 @@ Generators marked — do not display entropy tooltips.
 
 Each generator that produces secrets displays an entropy tooltip on hover. Two values are shown where they differ:
 
-- **Effective entropy** — calculated from the actual generation structure (word list size, pool constraints, syllable patterns). Used for all strength ratings and minimum-entropy thresholds. This is the conservative, honest estimate.
-- **Theoretical entropy** — calculated by treating every character as independently drawn from the full observed character set. Useful as an upper-bound reference; reflects what a generic brute-force tool would face with no knowledge of the generation method.
+- **Effective entropy** — calculated from the actual generation structure (word list size, pool constraints, syllable patterns). Used for all strength ratings and minimum-entropy thresholds. This is the practical, conservative estimate.
+- **Theoretical entropy** — calculated by treating every character as independently drawn from the full observed character set (symbol pool = 32). Useful as an upper-bound reference; reflects what a generic brute-force tool would face with no knowledge of the generation method.
 
-For purely random generators (API Keys, Recovery Codes, TOTP Secrets, etc.) the two values are equal and a simplified single-value tooltip is shown. The Tools tab generators (Hash, HMAC) do not show entropy — hashing and signing are transformations of input, not sources of new entropy.
+For purely random generators (API Keys, Recovery Codes, TOTP Secrets, Nano ID, etc.) the two values are equal and a simplified single-value tooltip is shown. The Tools tab generators (Hash, HMAC) do not show entropy — hashing and signing are transformations of input, not sources of new entropy.
+
+The **Strength Checker** in the Security tab gives a theoretical, character-set based estimate only. It is not pattern-aware and will overrate human-chosen phrases. Input is never stored or transmitted.
 
 Strength tiers: **Weak** < 50 bits · **Moderate** 50–80 bits · **Strong** 80–100 bits · **Very strong** > 100 bits
 
@@ -150,8 +157,9 @@ Strength tiers: **Weak** < 50 bits · **Moderate** 50–80 bits · **Strong** 80
 - All randomness uses `crypto.getRandomValues()` with rejection sampling — no `Math.random()` is used anywhere.
 - No data leaves the browser. Nothing is sent to any server.
 - Word list contents are stored in `localStorage` after import. Clear site data to remove them.
-- BIP-39 mnemonics are generated per spec (entropy + checksum) and are accepted by standards-compliant wallets. They are suitable for testing and non-critical use. For real wallet seed phrases, use dedicated air-gapped hardware.
+- BIP-39 mnemonics are generated per spec (entropy + checksum) using the complete canonical 2,048-word list. They are accepted by standards-compliant wallets. For real wallet seed phrases, use dedicated air-gapped hardware.
 - QR codes are rendered entirely client-side. Displayed values are not logged or stored beyond the current session.
+- The Strength Checker input field is not persisted to localStorage and clears on page reload.
 
 ---
 
